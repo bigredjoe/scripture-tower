@@ -1,20 +1,20 @@
 /* actions */
 
 module.exports = {
- 
-  UPVOTE: 'UPVOTE',
+  REFERENCE_CHANGE: 'REFERENCE_CHANGE',
+  RETRIEVING_VERSE: 'RETRIEVING_VERSE',
   
-  DOWNVOTE: 'DOWNVOTE',
-
-  upvote: function() {
+  referenceChange: function(reference) {
     return {
-      type: this.UPVOTE
+      type: this.REFERENCE_CHANGE,
+      reference: reference
     }
   },
 
-  downvote: function() {
+  retreivingVerse: function(verse) {
     return {
-      type: this.DOWNVOTE
+      type: this.RETREIVING_VERSE,
+      verse: verse
     }
   }
   
