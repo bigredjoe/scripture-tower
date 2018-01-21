@@ -7,11 +7,12 @@ const BrowserRouter = require('react-router-dom').BrowserRouter;
 const hashHistory = require('react-router-dom').hashHistory;
 
 // redux
-const { createStore } = require('redux');
+const { createStore, applyMiddleware  } = require('redux');
+const { thunk } = require('redux-thunk');  
 const { Provider } = require('react-redux');
 const votes = require('./reducers');
 
-let store = createStore(votes);
+let store = createStore(votes, applyMiddleware(thunk));
 
 /* Import Components */
 const HelloWorld = require('./components/HelloWorld');

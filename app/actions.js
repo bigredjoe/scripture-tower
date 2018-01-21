@@ -1,20 +1,36 @@
 /* actions */
 
 module.exports = {
- 
-  UPVOTE: 'UPVOTE',
+  REFERENCE_CHANGE: 'REFERENCE_CHANGE',
+  RETRIEVING_VERSE: 'RETRIEVING_VERSE',
+  RETRIEVED_VERSE: 'RETRIEVED_VERSE',
+  FADE_VERSE: 'FADE_VERSE',
   
-  DOWNVOTE: 'DOWNVOTE',
-
-  upvote: function() {
+  referenceChange: function(reference) {
     return {
-      type: this.UPVOTE
+      type: this.REFERENCE_CHANGE,
+      reference: reference
+    }
+  },
+  
+  referenceRetrieved: function(verse) {
+    return {
+      type: this.RETRIEVED_VERSE,
+      verse: verse
     }
   },
 
-  downvote: function() {
+  retreivingVerse: function(reference) {
     return {
-      type: this.DOWNVOTE
+      type: this.RETREIVING_VERSE,
+      reference: reference
+    }
+  },
+  
+  fadeVerse: function(opacity) {
+    return {
+      type: this.FADE_VERSE,
+      opacity: opacity
     }
   }
   
