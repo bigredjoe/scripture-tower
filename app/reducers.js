@@ -2,17 +2,15 @@
 
 const { REFERENCE_CHANGE, RETRIEVING_VERSE, FADE_VERSE } = require('./actions');
 
-function votes(state = [], action) {
+function verse(state = [], action) {
   switch (action.type) {
     case REFERENCE_CHANGE: 
       return Object.assign({}, state, {
-        voteScore: ( state.voteScore ) ? state.voteScore + 1 : 1,
-        voteCount: ( state.voteCount ) ? state.voteCount + 1 : 1
+        reference: action.reference
       });
     case RETRIEVING_VERSE:
        return Object.assign({}, state, {
-        voteScore: ( state.voteScore ) ? state.voteScore - 1 : -1,
-        voteCount: ( state.voteCount ) ? state.voteCount + 1 : 1
+        loadingIndicator: true
       });
     case FADE_VERSE:
     	return Object.assign({}, state, {
@@ -23,4 +21,4 @@ function votes(state = [], action) {
   }
 }
 
-module.exports = votes
+module.exports = verse

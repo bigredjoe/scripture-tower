@@ -12268,9 +12268,9 @@ function compose() {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_Provider__ = __webpack_require__(262);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_Provider__ = __webpack_require__(263);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__components_connectAdvanced__ = __webpack_require__(114);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__connect_connect__ = __webpack_require__(264);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__connect_connect__ = __webpack_require__(265);
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "Provider", function() { return __WEBPACK_IMPORTED_MODULE_0__components_Provider__["b"]; });
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "createProvider", function() { return __WEBPACK_IMPORTED_MODULE_0__components_Provider__["a"]; });
 /* harmony reexport (binding) */ __webpack_require__.d(__webpack_exports__, "connectAdvanced", function() { return __WEBPACK_IMPORTED_MODULE_1__components_connectAdvanced__["a"]; });
@@ -12317,7 +12317,7 @@ var storeShape = __WEBPACK_IMPORTED_MODULE_0_prop_types___default.a.shape({
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_invariant___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_invariant__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_react__ = __webpack_require__(6);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2_react___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2_react__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils_Subscription__ = __webpack_require__(263);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__utils_Subscription__ = __webpack_require__(264);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__utils_PropTypes__ = __webpack_require__(113);
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
@@ -12712,20 +12712,36 @@ function verifyPlainObject(value, displayName, methodName) {
 /* actions */
 
 module.exports = {
- 
-  UPVOTE: 'UPVOTE',
+  REFERENCE_CHANGE: 'REFERENCE_CHANGE',
+  RETRIEVING_VERSE: 'RETRIEVING_VERSE',
+  RETRIEVED_VERSE: 'RETRIEVED_VERSE',
+  FADE_VERSE: 'FADE_VERSE',
   
-  DOWNVOTE: 'DOWNVOTE',
-
-  upvote: function() {
+  referenceChange: function(reference) {
     return {
-      type: this.UPVOTE
+      type: this.REFERENCE_CHANGE,
+      reference: reference
+    }
+  },
+  
+  referenceRetrieved: function(verse) {
+    return {
+      type: this.RETRIEVED_VERSE,
+      verse: verse
     }
   },
 
-  downvote: function() {
+  retreivingVerse: function(reference) {
     return {
-      type: this.DOWNVOTE
+      type: this.RETREIVING_VERSE,
+      reference: reference
+    }
+  },
+  
+  fadeVerse: function(opacity) {
+    return {
+      type: this.FADE_VERSE,
+      opacity: opacity
     }
   }
   
@@ -12766,7 +12782,7 @@ module.exports = About;
 
 const { connect } = __webpack_require__(112);
 const actions = __webpack_require__(117);
-const VoteButtons = __webpack_require__(274);
+const VoteButtons = __webpack_require__(275);
 
 const mapStateToProps = function(state) {
   return {
@@ -12806,14 +12822,15 @@ const BrowserRouter = __webpack_require__(28).BrowserRouter;
 const hashHistory = __webpack_require__(28).hashHistory;
 
 // redux
-const { createStore } = __webpack_require__(106);
+const { createStore, applyMiddleware  } = __webpack_require__(106);
+const { thunk } = __webpack_require__(262);  
 const { Provider } = __webpack_require__(112);
-const votes = __webpack_require__(271);
+const votes = __webpack_require__(272);
 
-let store = createStore(votes);
+let store = createStore(votes, applyMiddleware(thunk));
 
 /* Import Components */
-const HelloWorld = __webpack_require__(272);
+const HelloWorld = __webpack_require__(273);
 const About = __webpack_require__(118);
 
 render((
@@ -28532,6 +28549,35 @@ function applyMiddleware() {
 
 /***/ }),
 /* 262 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+exports.__esModule = true;
+function createThunkMiddleware(extraArgument) {
+  return function (_ref) {
+    var dispatch = _ref.dispatch,
+        getState = _ref.getState;
+    return function (next) {
+      return function (action) {
+        if (typeof action === 'function') {
+          return action(dispatch, getState, extraArgument);
+        }
+
+        return next(action);
+      };
+    };
+  };
+}
+
+var thunk = createThunkMiddleware();
+thunk.withExtraArgument = createThunkMiddleware;
+
+exports['default'] = thunk;
+
+/***/ }),
+/* 263 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28617,7 +28663,7 @@ function createProvider() {
 /* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(0)))
 
 /***/ }),
-/* 263 */
+/* 264 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28716,17 +28762,17 @@ var Subscription = function () {
 
 
 /***/ }),
-/* 264 */
+/* 265 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* unused harmony export createConnect */
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__components_connectAdvanced__ = __webpack_require__(114);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_shallowEqual__ = __webpack_require__(265);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__mapDispatchToProps__ = __webpack_require__(266);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__mapStateToProps__ = __webpack_require__(267);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__mergeProps__ = __webpack_require__(268);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__selectorFactory__ = __webpack_require__(269);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__utils_shallowEqual__ = __webpack_require__(266);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__mapDispatchToProps__ = __webpack_require__(267);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__mapStateToProps__ = __webpack_require__(268);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__mergeProps__ = __webpack_require__(269);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__selectorFactory__ = __webpack_require__(270);
 var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
@@ -28832,7 +28878,7 @@ function createConnect() {
 /* harmony default export */ __webpack_exports__["a"] = (createConnect());
 
 /***/ }),
-/* 265 */
+/* 266 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28869,7 +28915,7 @@ function shallowEqual(objA, objB) {
 }
 
 /***/ }),
-/* 266 */
+/* 267 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28900,7 +28946,7 @@ function whenMapDispatchToPropsIsObject(mapDispatchToProps) {
 /* harmony default export */ __webpack_exports__["a"] = ([whenMapDispatchToPropsIsFunction, whenMapDispatchToPropsIsMissing, whenMapDispatchToPropsIsObject]);
 
 /***/ }),
-/* 267 */
+/* 268 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28922,7 +28968,7 @@ function whenMapStateToPropsIsMissing(mapStateToProps) {
 /* harmony default export */ __webpack_exports__["a"] = ([whenMapStateToPropsIsFunction, whenMapStateToPropsIsMissing]);
 
 /***/ }),
-/* 268 */
+/* 269 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -28979,14 +29025,14 @@ function whenMergePropsIsOmitted(mergeProps) {
 /* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(0)))
 
 /***/ }),
-/* 269 */
+/* 270 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 /* WEBPACK VAR INJECTION */(function(process) {/* unused harmony export impureFinalPropsSelectorFactory */
 /* unused harmony export pureFinalPropsSelectorFactory */
 /* harmony export (immutable) */ __webpack_exports__["a"] = finalPropsSelectorFactory;
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__verifySubselectors__ = __webpack_require__(270);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__verifySubselectors__ = __webpack_require__(271);
 function _objectWithoutProperties(obj, keys) { var target = {}; for (var i in obj) { if (keys.indexOf(i) >= 0) continue; if (!Object.prototype.hasOwnProperty.call(obj, i)) continue; target[i] = obj[i]; } return target; }
 
 
@@ -29092,7 +29138,7 @@ function finalPropsSelectorFactory(dispatch, _ref2) {
 /* WEBPACK VAR INJECTION */}.call(__webpack_exports__, __webpack_require__(0)))
 
 /***/ }),
-/* 270 */
+/* 271 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -29117,39 +29163,41 @@ function verifySubselectors(mapStateToProps, mapDispatchToProps, mergeProps, dis
 }
 
 /***/ }),
-/* 271 */
+/* 272 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* reducers */
 
-const { UPVOTE, DOWNVOTE } = __webpack_require__(117);
+const { REFERENCE_CHANGE, RETRIEVING_VERSE, FADE_VERSE } = __webpack_require__(117);
 
-function votes(state = [], action) {
+function verse(state = [], action) {
   switch (action.type) {
-    case UPVOTE: 
+    case REFERENCE_CHANGE: 
       return Object.assign({}, state, {
-        voteScore: ( state.voteScore ) ? state.voteScore + 1 : 1,
-        voteCount: ( state.voteCount ) ? state.voteCount + 1 : 1
+        reference: action.reference
       });
-    case DOWNVOTE:
+    case RETRIEVING_VERSE:
        return Object.assign({}, state, {
-        voteScore: ( state.voteScore ) ? state.voteScore - 1 : -1,
-        voteCount: ( state.voteCount ) ? state.voteCount + 1 : 1
+        loadingIndicator: true
       });
+    case FADE_VERSE:
+    	return Object.assign({}, state, {
+    		verseOpacity: action.opacity 
+    	});
     default:
       return state;
   }
 }
 
-module.exports = votes
+module.exports = verse
 
 /***/ }),
-/* 272 */
+/* 273 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(6);
 const Link = __webpack_require__(28).Link
-const UnorderedList = __webpack_require__(273);
+const UnorderedList = __webpack_require__(274);
 const About = __webpack_require__(118);
 const VoteContainer = __webpack_require__(119);
 
@@ -29198,7 +29246,7 @@ const HelloWorld = function() {
 module.exports = HelloWorld;
 
 /***/ }),
-/* 273 */
+/* 274 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(6);
@@ -29218,7 +29266,7 @@ const UnorderedList = function({ items }){
 module.exports = UnorderedList;
 
 /***/ }),
-/* 274 */
+/* 275 */
 /***/ (function(module, exports, __webpack_require__) {
 
 const React = __webpack_require__(6);

@@ -23,7 +23,7 @@ module.exports = {
   retreivingVerse: function(reference) {
     return {
       type: this.RETREIVING_VERSE,
-      reference: references
+      reference: reference
     }
   },
   
