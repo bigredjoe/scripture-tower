@@ -7,18 +7,19 @@ const VoteButtons = require('../components/VoteButtons');
 
 const mapStateToProps = function(state) {
   return {
-    voteScore: state.voteScore,
-    voteCount: state.voteCount
+    reference: state.reference,
+    voteCount: state.voteCount,
+    verse: state.verse
   }
 }
 
-const mapDispatchToProps = function(dispatch) {
+const mapDispatchToProps = (dispatch) => {
   return {
-    onUpvote: function() {
-      dispatch(actions.upvote())
+    onReferencechange: (event) => {
+      dispatch(actions.referenceChange(event.target.value));
     },
-    onDownvote: function() {
-      dispatch(actions.downvote())
+    retrievedVerse: (reference) => {
+      dispatch(actions.retreivingVerse(reference))
     }
   }
 }

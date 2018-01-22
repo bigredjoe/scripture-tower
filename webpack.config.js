@@ -14,10 +14,15 @@ module.exports = {
     loaders: [
       {
         test: /\.jsx?$/,
-        loader: 'jsx-loader',
+        use: {
+          loader: 'babel-loader',
+          options: {
+            presets: ['env', 'react', 'stage-3']
+          }
+        },
         exclude: /node_modules/,
         include: path.join(__dirname, 'app'),
-      },
+      }
     ],
   },
 };
