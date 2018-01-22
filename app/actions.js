@@ -1,37 +1,42 @@
 /* actions */
 
-module.exports = {
-  REFERENCE_CHANGE: 'REFERENCE_CHANGE',
-  RETRIEVING_VERSE: 'RETRIEVING_VERSE',
-  RETRIEVED_VERSE: 'RETRIEVED_VERSE',
-  FADE_VERSE: 'FADE_VERSE',
-  
-  referenceChange: function(reference) {
+const axios = require('axios');
+
+export const REFERENCE_CHANGE = 'REFERENCE_CHANGE';
+export const RETRIEVING_VERSE = 'RETRIEVING_VERSE';
+export const RETRIEVED_VERSE = 'RETRIEVED_VERSE';
+export const FADE_VERSE = 'FADE_VERSE';
+
+export function referenceChange(reference){
     return {
-      type: this.REFERENCE_CHANGE,
+      type: REFERENCE_CHANGE,
       reference: reference
     }
-  },
+}
   
-  referenceRetrieved: function(verse) {
+export function referenceRetrieved(verse) {
     return {
-      type: this.RETRIEVED_VERSE,
+      type: RETRIEVED_VERSE,
       verse: verse
     }
-  },
+}
 
-  retreivingVerse: function(reference) {
-    return {
-      type: this.RETREIVING_VERSE,
-      reference: reference
+export function retreivingVerse(reference) {
+    return (dispatch) => {
+      dispatch({
+        type: RETRIEVING_VERSE,
+        reference: reference
+      });
+      axios.get(`/referenceLookup?reference=${reference}`).then(function(response) {
+        console.log(response);
+        dispatch(referenceRetrieved(response.data));
+      });
     }
-  },
+  }
   
-  fadeVerse: function(opacity) {
+export function fadeVerse(opacity) {
     return {
       type: this.FADE_VERSE,
       opacity: opacity
     }
   }
-  
-}
