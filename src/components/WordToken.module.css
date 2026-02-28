@@ -48,6 +48,13 @@
   border-radius: 2px;
 }
 
+/* Stage 3 recall blank — fixed width, zero length information */
+.recallBlank {
+  width: 2.75ch;
+  min-width: 2.75ch;
+  /* override any text-driven width; display stays inline-block */
+}
+
 /* Typing cursor — the word currently at the typing cursor */
 .cursorWord {
   color: var(--text);

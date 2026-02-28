@@ -4,9 +4,9 @@
 
 /**
  * Returns the display string for a hidden word at the given stage.
- *   Stage 1: first letter + dashes  e.g. "l────"
- *   Stage 2: dashes sized to word   e.g. "─────"
- *   Stage 3: fixed neutral dots     e.g. "····"
+ *   Stage 1: first letter + dashes  e.g. "l────"  (first letter + length hint)
+ *   Stage 2: dashes sized to word   e.g. "─────"  (length hint only)
+ *   Stage 3: null                                   (fixed-width CSS blank — no hint at all)
  */
 export function getBlankDisplay(token, stage) {
   const len = token.blankLen;
@@ -16,8 +16,9 @@ export function getBlankDisplay(token, stage) {
   if (stage === 2) {
     return '─'.repeat(len);
   }
-  // stage 3 — no length or letter hint
-  return '·'.repeat(Math.min(len, 6));
+  // Stage 3: return null — WordToken will render a fixed-width CSS blank
+  // so no letter, length, or character-count information leaks through.
+  return null;
 }
 
 /**

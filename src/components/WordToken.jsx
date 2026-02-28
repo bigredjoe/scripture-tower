@@ -55,6 +55,10 @@ export default function WordToken({
     );
   }
 
+  const display = getBlankDisplay(token, stage);
+  // stage 3 returns null — use a fixed-width CSS blank with no text content
+  const isRecall = display === null;
+
   // Type mode — show blank with cursor highlight on the active word
   if (mode === 'type') {
     return (
@@ -63,13 +67,13 @@ export default function WordToken({
         <span
           className={[
             styles.blank,
-            isCursor ? styles.cursorWord : '',
+            isRecall    ? styles.recallBlank : '',
+            isCursor    ? styles.cursorWord  : '',
             isCursor && typingError ? styles.errorFlash : '',
           ].join(' ')}
-          aria-label={`Hidden word, ${blankLen} characters`}
-          style={{ '--blank-len': blankLen }}
+          aria-label="Hidden word"
         >
-          {getBlankDisplay(token, stage)}
+          {display}
         </span>
         {suffix}
       </span>
@@ -81,15 +85,18 @@ export default function WordToken({
     <span className={styles.word}>
       {prefix}
       <span
-        className={[styles.blank, styles.clickable].join(' ')}
+        className={[
+          styles.blank,
+          styles.clickable,
+          isRecall ? styles.recallBlank : '',
+        ].join(' ')}
         onClick={handleClick}
         role="button"
         tabIndex={0}
-        aria-label={`Hidden word, click to reveal`}
+        aria-label="Hidden word, click to reveal"
         onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleClick()}
-        style={{ '--blank-len': blankLen }}
       >
-        {getBlankDisplay(token, stage)}
+        {display}
       </span>
       {suffix}
     </span>
