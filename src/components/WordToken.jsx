@@ -66,6 +66,19 @@ export default function WordToken({
     const remainingLen = core.length - typed;
     const isPartial    = typed > 0 && remainingLen > 0;
 
+    // All core letters typed but suffix punctuation still pending (e.g. the ',' in "loved,").
+    // isTyped is still false because the cursor hasn't left the word yet.
+    // Show the full green core so the word doesn't flash back to a blank.
+    if (typed >= core.length && !isTyped) {
+      return (
+        <span className={styles.word}>
+          {prefix}
+          <span className={styles.typedChar}>{core}</span>
+          {suffix}
+        </span>
+      );
+    }
+
     if (isPartial) {
       // Show typed characters so far + shrinking blank for the rest
       const remainingDisplay = getPartialBlankDisplay(remainingLen, stage);
