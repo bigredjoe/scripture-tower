@@ -1,0 +1,20 @@
+.display {
+  font-family: var(--font-text);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  color: var(--text);
+  padding: 2rem 0 1.5rem;
+  outline: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.line {
+  display: block;
+  margin-bottom: 0.15em;
+}
+
+.paraBreak {
+  display: block;
+  height: 0.85em;
+}

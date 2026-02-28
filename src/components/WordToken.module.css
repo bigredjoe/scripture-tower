@@ -1,0 +1,83 @@
+.word {
+  display: inline;
+  white-space: pre-wrap;
+}
+
+.core {
+  display: inline;
+}
+
+/* Revealed word (by click or typing past it) */
+.revealed {
+  color: var(--correct);
+  background: var(--correct-bg);
+  border-radius: 2px;
+  padding: 0 1px;
+  animation: reveal-in 0.2s ease;
+}
+
+/* Hidden blank */
+.blank {
+  display: inline-block;
+  font-family: var(--font-mono);
+  color: var(--blank);
+  border-bottom: 2px solid var(--blank);
+  letter-spacing: 0.05em;
+  border-radius: 1px;
+  line-height: 1.2;
+  vertical-align: baseline;
+  user-select: none;
+  padding: 0 1px;
+  /* Smooth transition when stage changes */
+  transition: color 0.2s, border-color 0.2s;
+}
+
+/* Clickable blank */
+.clickable {
+  cursor: pointer;
+}
+.clickable:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  background: var(--accent-light);
+  border-radius: 2px;
+}
+.clickable:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-radius: 2px;
+}
+
+/* Typing cursor — the word currently at the typing cursor */
+.cursorWord {
+  color: var(--text);
+  border-bottom-color: var(--cursor-bg);
+  border-bottom-width: 3px;
+  background: color-mix(in srgb, var(--cursor-bg) 25%, transparent);
+  border-radius: 2px;
+  /* Pulse animation on cursor word */
+  animation: cursor-pulse 1.2s ease-in-out infinite;
+}
+
+/* Error flash when wrong key pressed */
+.errorFlash {
+  animation: flash-error 0.35s ease !important;
+  border-bottom-color: var(--error) !important;
+  color: var(--error) !important;
+  background: var(--error-bg) !important;
+}
+
+@keyframes reveal-in {
+  from { opacity: 0.4; transform: translateY(-2px); }
+  to   { opacity: 1;   transform: translateY(0); }
+}
+
+@keyframes cursor-pulse {
+  0%, 100% { background: color-mix(in srgb, var(--cursor-bg) 25%, transparent); }
+  50%       { background: color-mix(in srgb, var(--cursor-bg) 40%, transparent); }
+}
+
+@keyframes flash-error {
+  0%, 100% { background: transparent; border-bottom-color: var(--blank); color: var(--blank); }
+  30%      { background: var(--error-bg); border-bottom-color: var(--error); color: var(--error); }
+}
