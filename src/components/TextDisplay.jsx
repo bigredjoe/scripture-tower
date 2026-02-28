@@ -23,6 +23,7 @@ export default function TextDisplay({
   revealed,
   cursorWordId,
   typedWordIds,
+  wordProgress,
   typingError,
   onReveal,
 }) {
@@ -58,6 +59,15 @@ export default function TextDisplay({
       const isTyped    = typedWordIds ? typedWordIds.has(token.id) : false;
       const isCursor   = cursorWordId === token.id;
 
+      // How many characters of token.core have been typed so far.
+      // wordProgress counts total chars typed in the whole token text (prefix+core+suffix).
+      // Subtract prefix length to get into the core.
+      const totalTypedInWord = wordProgress ? (wordProgress.get(token.id) || 0) : 0;
+      const coreCharsTyped   = Math.max(0, Math.min(
+        totalTypedInWord - token.prefix.length,
+        token.core.length
+      ));
+
       lineChildren.push(
         <React.Fragment key={token.id}>
           <WordToken
@@ -67,6 +77,7 @@ export default function TextDisplay({
             isRevealed={isRevealed}
             isCursor={isCursor}
             isTyped={isTyped}
+            coreCharsTyped={coreCharsTyped}
             onReveal={onReveal}
             typingError={typingError && isCursor}
           />
@@ -77,7 +88,7 @@ export default function TextDisplay({
 
     flushLine('line');
     return out;
-  }, [tokens, stage, mode, revealed, cursorWordId, typedWordIds, typingError, onReveal]);
+  }, [tokens, stage, mode, revealed, cursorWordId, typedWordIds, wordProgress, typingError, onReveal]);
 
   return (
     <div

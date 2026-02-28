@@ -28,6 +28,20 @@ export default function MemorizeScreen({ memorize }) {
     return typed;
   }, [mode, typingCursor, charArray, cursorWordId]);
 
+  // Count how many characters of each word's text have been typed so far.
+  // Includes the current cursor word (partial progress).
+  const wordProgress = useMemo(() => {
+    if (mode !== 'type') return null;
+    const map = new Map(); // wordId -> total chars typed within that word's text
+    for (let i = 0; i < typingCursor && i < charArray.length; i++) {
+      const { wordId, isSpace } = charArray[i];
+      if (!isSpace && wordId !== null) {
+        map.set(wordId, (map.get(wordId) || 0) + 1);
+      }
+    }
+    return map;
+  }, [mode, typingCursor, charArray]);
+
   const handlePrevStage = () => setStage(Math.max(0, stage - 1));
   const handleNextStage = () => setStage(Math.min(3, stage + 1));
 
@@ -55,6 +69,7 @@ export default function MemorizeScreen({ memorize }) {
           revealed={revealed}
           cursorWordId={cursorWordId}
           typedWordIds={typedWordIds}
+          wordProgress={wordProgress}
           typingError={typingError}
           onReveal={revealWord}
         />

@@ -48,11 +48,23 @@
   border-radius: 2px;
 }
 
+/* Characters already typed (partial word fill-in) */
+.typedChar {
+  color: var(--correct);
+  font-family: var(--font-text);
+}
+
 /* Stage 3 recall blank — fixed width, zero length information */
 .recallBlank {
   width: 2.75ch;
   min-width: 2.75ch;
   /* override any text-driven width; display stays inline-block */
+}
+
+/* Stage 3 partial blank — same fixed width but used for the remaining tail */
+.recallBlankPartial {
+  width: 1.5ch;
+  min-width: 1.5ch;
 }
 
 /* Typing cursor — the word currently at the typing cursor */

@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { getBlankDisplay } from '../utils/wordUtils.js';
+import { getBlankDisplay, getPartialBlankDisplay } from '../utils/wordUtils.js';
 import styles from './WordToken.module.css';
 
 /**
@@ -20,8 +20,9 @@ export default function WordToken({
   stage,
   mode,
   isRevealed,
-  isCursor,    // true if the typing cursor is currently on this word
-  isTyped,     // true if typing cursor has passed this word completely
+  isCursor,        // true if the typing cursor is currently on this word
+  isTyped,         // true if typing cursor has passed this word completely
+  coreCharsTyped,  // number of core chars typed so far (type mode, partial progress)
   onReveal,
   typingError,
 }) {
@@ -59,8 +60,36 @@ export default function WordToken({
   // stage 3 returns null — use a fixed-width CSS blank with no text content
   const isRecall = display === null;
 
-  // Type mode — show blank with cursor highlight on the active word
+  // Type mode
   if (mode === 'type') {
+    const typed        = coreCharsTyped || 0;
+    const remainingLen = core.length - typed;
+    const isPartial    = typed > 0 && remainingLen > 0;
+
+    if (isPartial) {
+      // Show typed characters so far + shrinking blank for the rest
+      const remainingDisplay = getPartialBlankDisplay(remainingLen, stage);
+      return (
+        <span className={styles.word}>
+          {prefix}
+          <span className={styles.typedChar}>{core.slice(0, typed)}</span>
+          <span
+            className={[
+              styles.blank,
+              remainingDisplay === null ? styles.recallBlankPartial : '',
+              isCursor ? styles.cursorWord : '',
+              isCursor && typingError ? styles.errorFlash : '',
+            ].join(' ')}
+            aria-label="Hidden word"
+          >
+            {remainingDisplay}
+          </span>
+          {suffix}
+        </span>
+      );
+    }
+
+    // Full blank (not yet started on this word)
     return (
       <span className={styles.word}>
         {prefix}

@@ -22,6 +22,18 @@ export function getBlankDisplay(token, stage) {
 }
 
 /**
+ * Returns the display string for the *remaining* untyped portion of a word
+ * while it is being partially filled in (type mode).
+ *   Stage 1 & 2: dashes for remaining chars  e.g. "───" (3 left)
+ *   Stage 3: null — fixed-width CSS blank (still no length info)
+ */
+export function getPartialBlankDisplay(remainingLen, stage) {
+  if (remainingLen <= 0) return '';
+  if (stage === 3) return null;
+  return '─'.repeat(remainingLen);
+}
+
+/**
  * Build a flat character array from the raw text, mapping each
  * character position to its word token id (or null for whitespace/newlines).
  *
