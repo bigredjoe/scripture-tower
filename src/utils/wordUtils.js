@@ -77,8 +77,12 @@ export function buildCharMap(rawText, tokens) {
 }
 
 /**
- * Simpler approach: return the raw text as an array of characters with their wordId.
- * Uses sequential matching against the token list.
+ * Return the raw text as an array of characters with their wordId.
+ * Each entry: { char, wordId, isSpace, isPunctuation }
+ *
+ * isPunctuation=true for prefix/suffix chars of a word token (not the core).
+ * The typing cursor auto-skips both spaces and punctuation chars, so users
+ * only need to type the actual word letters.
  */
 export function buildCharArray(rawText, tokens) {
   const wordTokens = tokens.filter(t => t.type === 'word');
@@ -89,20 +93,27 @@ export function buildCharArray(rawText, tokens) {
   while (pos < rawText.length) {
     const ch = rawText[pos];
     if (/\s/.test(ch)) {
-      result.push({ char: ch, wordId: null, isSpace: true });
+      result.push({ char: ch, wordId: null, isSpace: true, isPunctuation: false });
       pos++;
     } else {
       const wt = wordTokens[wtIdx];
       if (wt && rawText.startsWith(wt.text, pos)) {
-        // Emit each char of this word token with the same wordId
+        const prefixLen = wt.prefix.length;
+        const coreLen   = wt.core.length;
         for (let i = 0; i < wt.text.length; i++) {
-          result.push({ char: rawText[pos + i], wordId: wt.id, isSpace: false });
+          const isCore = i >= prefixLen && i < prefixLen + coreLen;
+          result.push({
+            char:          rawText[pos + i],
+            wordId:        wt.id,
+            isSpace:       false,
+            isPunctuation: !isCore,
+          });
         }
         pos += wt.text.length;
         wtIdx++;
       } else {
-        // Fallback: single char, unknown word
-        result.push({ char: ch, wordId: null, isSpace: false });
+        // Fallback: single unrecognised char
+        result.push({ char: ch, wordId: null, isSpace: false, isPunctuation: false });
         pos++;
       }
     }

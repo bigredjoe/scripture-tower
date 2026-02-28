@@ -166,9 +166,10 @@ export function useMemorize() {
 
       const { charArray, typingCursor } = state;
 
-      // Auto-skip spaces/newlines at current cursor position
+      // Skip spaces and punctuation — users only type core word characters
       let cursor = typingCursor;
-      while (cursor < charArray.length && charArray[cursor].isSpace) {
+      while (cursor < charArray.length &&
+             (charArray[cursor].isSpace || charArray[cursor].isPunctuation)) {
         cursor++;
       }
 
@@ -178,9 +179,12 @@ export function useMemorize() {
 
       if (e.key === expected) {
         e.preventDefault();
-        // Advance past this char, then skip any trailing spaces
+        // Advance past this char, then skip to the next typeable (non-space, non-punct) position
         let next = cursor + 1;
-        // Don't skip spaces here — let the auto-skip above handle it on next keypress
+        while (next < charArray.length &&
+               (charArray[next].isSpace || charArray[next].isPunctuation)) {
+          next++;
+        }
         dispatch({ type: ADVANCE_CURSOR, nextCursor: next });
       } else {
         e.preventDefault();
@@ -199,12 +203,14 @@ export function useMemorize() {
   const revealedCount = state.revealed.size;
   const progress     = totalWords > 0 ? revealedCount / totalWords : 0;
 
-  // In type mode, compute which wordId the cursor is currently at
+  // In type mode, compute which wordId the cursor is currently at.
+  // Skip spaces and punctuation — cursor always sits on a core char.
   const cursorWordId = (() => {
     if (state.mode !== 'type' || state.screen !== 'memorize') return null;
     const { charArray, typingCursor } = state;
     let i = typingCursor;
-    while (i < charArray.length && charArray[i].isSpace) i++;
+    while (i < charArray.length &&
+           (charArray[i].isSpace || charArray[i].isPunctuation)) i++;
     return i < charArray.length ? charArray[i].wordId : null;
   })();
 
