@@ -70,8 +70,7 @@
 /* Typing cursor — the word currently at the typing cursor */
 .cursorWord {
   color: var(--text);
-  border-bottom-color: var(--cursor-bg);
-  border-bottom-width: 3px;
+  border-bottom: 3px solid var(--cursor-bg);
   background: color-mix(in srgb, var(--cursor-bg) 25%, transparent);
   border-radius: 2px;
   /* Pulse animation on cursor word */

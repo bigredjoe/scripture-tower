@@ -3,9 +3,22 @@ import styles from './ProgressCounter.module.css';
 
 export default function ProgressCounter({ revealed, total, stage, mode, typingCursor, charArray }) {
   if (stage === 0) {
+    if (mode !== 'type') {
+      return (
+        <div className={styles.counter}>
+          <span className={styles.label}>Reading mode — study the text, then advance to Stage 1</span>
+        </div>
+      );
+    }
+    const pct = total > 0 ? Math.round((revealed / total) * 100) : 0;
     return (
       <div className={styles.counter}>
-        <span className={styles.label}>Reading mode — study the text, then advance to Stage 1</span>
+        <span className={styles.label}>
+          <strong>{revealed}</strong> / {total} words confirmed
+        </span>
+        <div className={styles.barWrap}>
+          <div className={styles.bar} style={{ width: `${pct}%` }} />
+        </div>
       </div>
     );
   }

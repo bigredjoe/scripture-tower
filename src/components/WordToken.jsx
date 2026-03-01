@@ -34,8 +34,64 @@ export default function WordToken({
     }
   }, [stage, mode, isRevealed, onReveal, token.id]);
 
-  // Stage 0 — always fully visible
+  // Stage 0 — text is always visible; type mode adds color confirmation
   if (stage === 0) {
+    // Confirmed by typing
+    if (isRevealed || isTyped) {
+      return (
+        <span className={styles.word}>
+          {prefix}
+          <span className={[styles.core, styles.revealed].join(' ')}>{core}</span>
+          {suffix}
+        </span>
+      );
+    }
+    // Cursor word (currently being typed)
+    if (mode === 'type' && isCursor) {
+      const typed = coreCharsTyped || 0;
+      // All core chars typed but suffix still pending
+      if (typed >= core.length) {
+        return (
+          <span className={styles.word}>
+            {prefix}
+            <span className={styles.typedChar}>{core}</span>
+            {suffix}
+          </span>
+        );
+      }
+      // Partial — green typed portion + underlined remaining visible text
+      if (typed > 0) {
+        return (
+          <span className={styles.word}>
+            {prefix}
+            <span className={styles.typedChar}>{core.slice(0, typed)}</span>
+            <span className={[
+              styles.core,
+              styles.cursorWord,
+              typingError ? styles.errorFlash : '',
+            ].join(' ')}>
+              {core.slice(typed)}
+            </span>
+            {suffix}
+          </span>
+        );
+      }
+      // Nothing typed yet — underline whole word as cursor
+      return (
+        <span className={styles.word}>
+          {prefix}
+          <span className={[
+            styles.core,
+            styles.cursorWord,
+            typingError ? styles.errorFlash : '',
+          ].join(' ')}>
+            {core}
+          </span>
+          {suffix}
+        </span>
+      );
+    }
+    // Plain text (click mode, or type mode not at cursor)
     return (
       <span className={styles.word}>
         {prefix}

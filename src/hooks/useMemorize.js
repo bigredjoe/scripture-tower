@@ -31,13 +31,13 @@ const initialState = {
 };
 
 // ── Helper: should this charArray entry be skipped by the typing cursor? ──
-// Spaces, punctuation, non-blanked words (per substage), and already-revealed
-// words are all auto-skipped.  Stage 0 skips nothing (type the full text).
+// Spaces, punctuation, already-confirmed words, and non-blanked words (per
+// substage) are all auto-skipped.  Stage 0 skips nothing beyond the above.
 function shouldSkipChar(entry, stage, substage, revealed, batchMap) {
   if (entry.isSpace || entry.isPunctuation) return true;
   if (entry.wordId === null) return true;
-  if (stage === 0) return false;
   if (revealed.has(entry.wordId)) return true;
+  if (stage === 0) return false;
   return !isWordBlanked(entry.wordId, substage, batchMap);
 }
 
