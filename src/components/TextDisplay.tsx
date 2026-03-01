@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import WordToken from './WordToken.jsx';
+import WordToken from './WordToken';
+import type { Token, WordItem, Stage, Mode } from '../types';
 import styles from './TextDisplay.module.css';
 
 /**
@@ -17,6 +18,19 @@ import styles from './TextDisplay.module.css';
  *   typingError   - boolean — flashes the cursor word
  *   onReveal      - (id: number) => void
  */
+interface TextDisplayProps {
+  tokens: Token[];
+  stage: Stage;
+  mode: Mode;
+  revealed: Set<number>;
+  blankedWordIds: Set<number>;
+  cursorWordId: number | null;
+  typedWordIds: Set<number>;
+  wordProgress: Map<number, number> | null;
+  typingError: boolean;
+  onReveal: (id: number) => void;
+}
+
 export default function TextDisplay({
   tokens,
   stage,
@@ -28,11 +42,11 @@ export default function TextDisplay({
   wordProgress,
   typingError,
   onReveal,
-}) {
+}: TextDisplayProps) {
   const elements = useMemo(() => {
-    const out = [];
+    const out: React.ReactElement[] = [];
     let lineKey = 0;
-    let lineChildren = [];
+    let lineChildren: React.ReactElement[] = [];
 
     function flushLine(type = 'line') {
       if (lineChildren.length > 0 || type === 'para') {
@@ -45,7 +59,7 @@ export default function TextDisplay({
       }
     }
 
-    tokens.forEach((token, idx) => {
+    tokens.forEach((token) => {
       if (token.type === 'newline') {
         flushLine('line');
         return;
@@ -56,29 +70,30 @@ export default function TextDisplay({
         return;
       }
 
-      // word token
-      const isRevealed = revealed.has(token.id);
-      const isTyped    = typedWordIds ? typedWordIds.has(token.id) : false;
-      const isCursor   = cursorWordId === token.id;
+      // word token — TypeScript narrows Token to WordItem here
+      const wordToken = token as WordItem;
+      const isRevealed = revealed.has(wordToken.id);
+      const isTyped    = typedWordIds ? typedWordIds.has(wordToken.id) : false;
+      const isCursor   = cursorWordId === wordToken.id;
 
       // Words not yet in the current batch are shown at stage 0 (fully visible).
       // Words that are blanked at the current substage level use the real stage.
       const effectiveStage =
-        stage > 0 && blankedWordIds && !blankedWordIds.has(token.id) ? 0 : stage;
+        stage > 0 && blankedWordIds && !blankedWordIds.has(wordToken.id) ? 0 : stage;
 
       // How many characters of token.core have been typed so far.
       // wordProgress counts total chars typed in the whole token text (prefix+core+suffix).
       // Subtract prefix length to get into the core.
-      const totalTypedInWord = wordProgress ? (wordProgress.get(token.id) || 0) : 0;
+      const totalTypedInWord = wordProgress ? (wordProgress.get(wordToken.id) || 0) : 0;
       const coreCharsTyped   = Math.max(0, Math.min(
-        totalTypedInWord - token.prefix.length,
-        token.core.length
+        totalTypedInWord - wordToken.prefix.length,
+        wordToken.core.length
       ));
 
       lineChildren.push(
-        <React.Fragment key={token.id}>
+        <React.Fragment key={wordToken.id}>
           <WordToken
-            token={token}
+            token={wordToken}
             stage={effectiveStage}
             mode={mode}
             isRevealed={isRevealed}

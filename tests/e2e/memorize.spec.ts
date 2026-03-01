@@ -1,22 +1,21 @@
-// @ts-check
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
 const SAMPLE_TEXT = 'hello world';
 
-async function startApp(page, text = SAMPLE_TEXT) {
+async function startApp(page: Page, text = SAMPLE_TEXT) {
   await page.goto('/');
   await page.locator('textarea').fill(text);
   await page.locator('button', { hasText: 'Start Memorizing' }).click();
 }
 
-async function switchToTypeMode(page) {
+async function switchToTypeMode(page: Page) {
   await page.locator('button', { hasText: 'Type mode' }).click();
 }
 
 /** Word locator by word-id data attribute (set by WordToken). */
-function word(page, id) {
+function word(page: Page, id: number) {
   return page.locator(`[data-word-id="${id}"]`);
 }
 
@@ -125,14 +124,13 @@ test.describe('Stage 1 — first letters, type mode', () => {
   test('typing the correct word confirms it', async ({ page }) => {
     // Find which word has the cursor
     const cursoredWord = page.locator('[data-state="cursor"]').first();
-    const wordId = await cursoredWord.getAttribute('data-word-id');
     const wordText = await cursoredWord.textContent();
 
     // Type it — word text may include first-letter hint visually, but we type the core
     // We identify the word by data-word-id, look at tokens to get core
     // For E2E simplicity: just type all text of what is visible (first letter is shown)
     // Type the full core word (one char at a time)
-    for (const ch of wordText.trim().replace(/[─]+/g, '').trim()) {
+    for (const ch of (wordText ?? '').trim().replace(/[─]+/g, '').trim()) {
       await page.keyboard.press(ch);
     }
 

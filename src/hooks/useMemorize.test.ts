@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useMemorize } from './useMemorize.js';
+import { useMemorize } from './useMemorize';
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
@@ -13,19 +13,19 @@ function setup(text = TEXT) {
 }
 
 /** Enable type mode (also resets cursor to 0). */
-function enableTypeMode(result) {
+function enableTypeMode(result: ReturnType<typeof setup>) {
   act(() => { result.current.setMode('type'); });
 }
 
 /** Dispatch a single keydown event on window (simulates a key press). */
-function typeKey(key) {
+function typeKey(key: string) {
   act(() => {
     window.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
   });
 }
 
 /** Type every character in a string one by one. */
-function typeWord(word) {
+function typeWord(word: string) {
   for (const ch of word) typeKey(ch);
 }
 
@@ -198,10 +198,11 @@ describe('useMemorize typing mode — stage 1', () => {
 
     // Retrieve that word's core text from tokens
     const token = result.current.tokens.find(t => t.type === 'word' && t.id === firstBlankedId);
-    const [firstChar, ...rest] = token.core;
+    const core = (token as { core: string } | undefined)?.core ?? '';
+    const [firstChar] = core;
 
     typeKey(firstChar); // partial — should NOT confirm
-    expect(result.current.revealed.has(firstBlankedId)).toBe(false);
+    expect(result.current.revealed.has(firstBlankedId!)).toBe(false);
     expect(result.current.cursorWordId).toBe(firstBlankedId);
   });
 
@@ -212,8 +213,9 @@ describe('useMemorize typing mode — stage 1', () => {
 
     const firstBlankedId = result.current.cursorWordId;
     const token = result.current.tokens.find(t => t.type === 'word' && t.id === firstBlankedId);
+    const core = (token as { core: string } | undefined)?.core ?? '';
 
-    typeWord(token.core);
-    expect(result.current.revealed.has(firstBlankedId)).toBe(true);
+    typeWord(core);
+    expect(result.current.revealed.has(firstBlankedId!)).toBe(true);
   });
 });

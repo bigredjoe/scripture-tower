@@ -6,8 +6,8 @@ import {
   isWordBlanked,
   computeWordBatchMap,
   NUM_SUBSTAGES,
-} from './wordUtils.js';
-import { parseText } from './parseText.js';
+} from './wordUtils';
+import { parseText } from './parseText';
 
 describe('getBlankDisplay', () => {
   const token = { firstLetter: 'h', blankLen: 5 };
@@ -78,8 +78,8 @@ describe('computeWordBatchMap', () => {
     const tokens = parseText('a b c d e f g h');
     const map = computeWordBatchMap(tokens);
     tokens.filter(t => t.type === 'word').forEach(w => {
-      expect(map[w.id]).toBeGreaterThanOrEqual(0);
-      expect(map[w.id]).toBeLessThan(NUM_SUBSTAGES);
+      expect(map[w.id!]).toBeGreaterThanOrEqual(0);
+      expect(map[w.id!]).toBeLessThan(NUM_SUBSTAGES);
     });
   });
 

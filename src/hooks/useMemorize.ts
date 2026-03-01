@@ -1,39 +1,47 @@
 import { useReducer, useEffect, useCallback } from 'react';
-import { parseText, countWords } from '../utils/parseText.js';
-import { buildCharArray, isWordBlanked, computeWordBatchMap, NUM_SUBSTAGES } from '../utils/wordUtils.js';
+import { parseText, countWords } from '../utils/parseText';
+import { buildCharArray, isWordBlanked, computeWordBatchMap, NUM_SUBSTAGES } from '../utils/wordUtils';
+import type { CharEntry, Stage, Mode, MemorizeState, MemorizeHookResult, WordItem } from '../types';
 
 // ── Action Types ───────────────────────────────────────────
-const START          = 'START';
-const SET_STAGE      = 'SET_STAGE';
-const SET_MODE       = 'SET_MODE';
-const REVEAL_WORD    = 'REVEAL_WORD';
-const REVEAL_ALL     = 'REVEAL_ALL';
-const RESET          = 'RESET';
-const ADVANCE_CURSOR = 'ADVANCE_CURSOR';
-const SET_ERROR      = 'SET_ERROR';
-const BACK_TO_INPUT  = 'BACK_TO_INPUT';
-const NEXT_SUBSTAGE  = 'NEXT_SUBSTAGE';
+type MemorizeAction =
+  | { type: 'START'; title: string; rawText: string }
+  | { type: 'SET_STAGE'; stage: Stage }
+  | { type: 'SET_MODE'; mode: Mode }
+  | { type: 'REVEAL_WORD'; id: number }
+  | { type: 'REVEAL_ALL' }
+  | { type: 'RESET' }
+  | { type: 'ADVANCE_CURSOR'; nextCursor: number; justTyped: number }
+  | { type: 'SET_ERROR'; value: boolean }
+  | { type: 'BACK_TO_INPUT' }
+  | { type: 'NEXT_SUBSTAGE' };
 
 // ── Initial State ──────────────────────────────────────────
-const initialState = {
-  screen:        'input',
-  title:         '',
-  rawText:       '',
-  tokens:        [],
-  charArray:     [],    // flat char-level array for typing mode
-  wordBatchMap:  {},    // randomised wordId → batchIndex (0-based), set on START
-  stage:         0,
-  substage:      0,     // 1..NUM_SUBSTAGES within each stage; 0 means no stage entered yet
-  mode:          'click',
-  revealed:      new Set(),
-  typingCursor:  0,
-  typingError:   false,
+const initialState: MemorizeState = {
+  screen:       'input',
+  title:        '',
+  rawText:      '',
+  tokens:       [],
+  charArray:    [],    // flat char-level array for typing mode
+  wordBatchMap: {},    // randomised wordId → batchIndex (0-based), set on START
+  stage:        0,
+  substage:     0,     // 1..NUM_SUBSTAGES within each stage; 0 means no stage entered yet
+  mode:         'click',
+  revealed:     new Set(),
+  typingCursor: 0,
+  typingError:  false,
 };
 
 // ── Helper: should this charArray entry be skipped by the typing cursor? ──
 // Spaces, punctuation, already-confirmed words, and non-blanked words (per
 // substage) are all auto-skipped.  Stage 0 skips nothing beyond the above.
-function shouldSkipChar(entry, stage, substage, revealed, batchMap) {
+function shouldSkipChar(
+  entry: CharEntry,
+  stage: Stage,
+  substage: number,
+  revealed: Set<number>,
+  batchMap: Record<number, number>,
+): boolean {
   if (entry.isSpace || entry.isPunctuation) return true;
   if (entry.wordId === null) return true;
   if (revealed.has(entry.wordId)) return true;
@@ -42,10 +50,10 @@ function shouldSkipChar(entry, stage, substage, revealed, batchMap) {
 }
 
 // ── Reducer ────────────────────────────────────────────────
-function reducer(state, action) {
+function reducer(state: MemorizeState, action: MemorizeAction): MemorizeState {
   switch (action.type) {
 
-    case START: {
+    case 'START': {
       const tokens      = parseText(action.rawText);
       const charArray   = buildCharArray(action.rawText, tokens);
       const wordBatchMap = computeWordBatchMap(tokens);
@@ -65,7 +73,7 @@ function reducer(state, action) {
       };
     }
 
-    case SET_STAGE:
+    case 'SET_STAGE':
       return {
         ...state,
         stage:        action.stage,
@@ -75,7 +83,7 @@ function reducer(state, action) {
         typingError:  false,
       };
 
-    case SET_MODE:
+    case 'SET_MODE':
       return {
         ...state,
         mode:         action.mode,
@@ -84,20 +92,20 @@ function reducer(state, action) {
         // Keep revealed and substage — progress persists across mode switches
       };
 
-    case REVEAL_WORD: {
+    case 'REVEAL_WORD': {
       const revealed = new Set(state.revealed);
       revealed.add(action.id);
       return { ...state, revealed };
     }
 
-    case REVEAL_ALL: {
+    case 'REVEAL_ALL': {
       const wordIds = state.tokens
-        .filter(t => t.type === 'word')
+        .filter((t): t is WordItem => t.type === 'word')
         .map(t => t.id);
       return { ...state, revealed: new Set(wordIds) };
     }
 
-    case RESET:
+    case 'RESET':
       return {
         ...state,
         revealed:     new Set(),
@@ -106,7 +114,7 @@ function reducer(state, action) {
         typingError:  false,
       };
 
-    case NEXT_SUBSTAGE:
+    case 'NEXT_SUBSTAGE':
       return {
         ...state,
         substage:     Math.min(state.substage + 1, NUM_SUBSTAGES),
@@ -115,7 +123,7 @@ function reducer(state, action) {
         // Keep revealed — already-typed/clicked words stay green
       };
 
-    case ADVANCE_CURSOR: {
+    case 'ADVANCE_CURSOR': {
       const { nextCursor, justTyped } = action;
       const revealed  = new Set(state.revealed);
       const charArray = state.charArray;
@@ -155,10 +163,10 @@ function reducer(state, action) {
       return { ...state, typingCursor: nextCursor, revealed, typingError: false };
     }
 
-    case SET_ERROR:
+    case 'SET_ERROR':
       return { ...state, typingError: action.value };
 
-    case BACK_TO_INPUT:
+    case 'BACK_TO_INPUT':
       return { ...initialState };
 
     default:
@@ -167,47 +175,47 @@ function reducer(state, action) {
 }
 
 // ── Hook ───────────────────────────────────────────────────
-export function useMemorize() {
+export function useMemorize(): MemorizeHookResult {
   const [state, dispatch] = useReducer(reducer, initialState);
 
   // ── Actions ──
-  const start = useCallback((title, rawText) => {
-    dispatch({ type: START, title, rawText });
+  const start = useCallback((title: string, rawText: string) => {
+    dispatch({ type: 'START', title, rawText });
   }, []);
 
-  const setStage = useCallback(stage => {
-    dispatch({ type: SET_STAGE, stage });
+  const setStage = useCallback((stage: Stage) => {
+    dispatch({ type: 'SET_STAGE', stage });
   }, []);
 
-  const setMode = useCallback(mode => {
-    dispatch({ type: SET_MODE, mode });
+  const setMode = useCallback((mode: Mode) => {
+    dispatch({ type: 'SET_MODE', mode });
   }, []);
 
-  const revealWord = useCallback(id => {
-    dispatch({ type: REVEAL_WORD, id });
+  const revealWord = useCallback((id: number) => {
+    dispatch({ type: 'REVEAL_WORD', id });
   }, []);
 
   const revealAll = useCallback(() => {
-    dispatch({ type: REVEAL_ALL });
+    dispatch({ type: 'REVEAL_ALL' });
   }, []);
 
   const reset = useCallback(() => {
-    dispatch({ type: RESET });
+    dispatch({ type: 'RESET' });
   }, []);
 
   const nextSubstage = useCallback(() => {
-    dispatch({ type: NEXT_SUBSTAGE });
+    dispatch({ type: 'NEXT_SUBSTAGE' });
   }, []);
 
   const backToInput = useCallback(() => {
-    dispatch({ type: BACK_TO_INPUT });
+    dispatch({ type: 'BACK_TO_INPUT' });
   }, []);
 
   // ── Keyboard handler for type mode ──
   useEffect(() => {
     if (state.screen !== 'memorize' || state.mode !== 'type') return;
 
-    function handleKeyDown(e) {
+    function handleKeyDown(e: KeyboardEvent) {
       // Ignore modifier-key combos (Ctrl+C etc.)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
       // Only handle printable single characters
@@ -235,11 +243,11 @@ export function useMemorize() {
                shouldSkipChar(charArray[next], stage, substage, revealed, wordBatchMap)) {
           next++;
         }
-        dispatch({ type: ADVANCE_CURSOR, nextCursor: next, justTyped: cursor });
+        dispatch({ type: 'ADVANCE_CURSOR', nextCursor: next, justTyped: cursor });
       } else {
         e.preventDefault();
-        dispatch({ type: SET_ERROR, value: true });
-        setTimeout(() => dispatch({ type: SET_ERROR, value: false }), 400);
+        dispatch({ type: 'SET_ERROR', value: true });
+        setTimeout(() => dispatch({ type: 'SET_ERROR', value: false }), 400);
       }
     }
 

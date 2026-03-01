@@ -1,7 +1,16 @@
-import React from 'react';
+import type { Stage, Mode, CharEntry } from '../types';
 import styles from './ProgressCounter.module.css';
 
-export default function ProgressCounter({ revealed, total, stage, mode, typingCursor, charArray }) {
+interface ProgressCounterProps {
+  revealed: number;
+  total: number;
+  stage: Stage;
+  mode: Mode;
+  typingCursor: number;
+  charArray: CharEntry[];
+}
+
+export default function ProgressCounter({ revealed, total, stage, mode, typingCursor, charArray }: ProgressCounterProps) {
   if (stage === 0) {
     if (mode !== 'type') {
       return (
@@ -24,7 +33,7 @@ export default function ProgressCounter({ revealed, total, stage, mode, typingCu
   }
 
   if (mode === 'type') {
-    const totalChars = charArray ? charArray.length : 0;
+    const totalChars = charArray.length;
     const pct = totalChars > 0 ? Math.round((typingCursor / totalChars) * 100) : 0;
     return (
       <div className={styles.counter}>

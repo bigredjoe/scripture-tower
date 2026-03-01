@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseText, countWords } from './parseText.js';
+import { parseText, countWords } from './parseText';
 
 describe('parseText', () => {
   it('tokenises simple words', () => {
@@ -37,8 +37,8 @@ describe('parseText', () => {
   it('sets firstLetter and blankLen from the core', () => {
     const tokens = parseText('hello');
     const word = tokens.find(t => t.type === 'word');
-    expect(word.firstLetter).toBe('h');
-    expect(word.blankLen).toBe(5);
+    expect(word?.firstLetter).toBe('h');
+    expect(word?.blankLen).toBe(5);
   });
 
   it('handles apostrophes in contractions (suffix)', () => {
@@ -46,7 +46,7 @@ describe('parseText', () => {
     const words = tokens.filter(t => t.type === 'word');
     // "don't" — trailing apostrophe is treated as suffix punctuation
     expect(words).toHaveLength(1);
-    expect(words[0].core.length).toBeGreaterThan(0);
+    expect(words[0].core?.length).toBeGreaterThan(0);
   });
 
   it('produces no word tokens for an empty string', () => {

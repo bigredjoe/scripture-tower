@@ -1,7 +1,6 @@
-import React from 'react';
-import { useMemorize } from './hooks/useMemorize.js';
-import InputScreen    from './components/InputScreen.jsx';
-import MemorizeScreen from './components/MemorizeScreen.jsx';
+import { useMemorize } from './hooks/useMemorize';
+import InputScreen    from './components/InputScreen';
+import MemorizeScreen from './components/MemorizeScreen';
 import styles from './App.module.css';
 
 export default function App() {

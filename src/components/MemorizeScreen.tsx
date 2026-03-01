@@ -1,12 +1,17 @@
-import React, { useMemo } from 'react';
-import StageBar        from './StageBar.jsx';
-import Controls        from './Controls.jsx';
-import ProgressCounter from './ProgressCounter.jsx';
-import TextDisplay     from './TextDisplay.jsx';
-import { isWordBlanked, NUM_SUBSTAGES } from '../utils/wordUtils.js';
+import { useMemo } from 'react';
+import StageBar        from './StageBar';
+import Controls        from './Controls';
+import ProgressCounter from './ProgressCounter';
+import TextDisplay     from './TextDisplay';
+import { isWordBlanked, NUM_SUBSTAGES } from '../utils/wordUtils';
+import type { MemorizeHookResult, WordItem, Stage } from '../types';
 import styles from './MemorizeScreen.module.css';
 
-export default function MemorizeScreen({ memorize }) {
+interface MemorizeScreenProps {
+  memorize: MemorizeHookResult;
+}
+
+export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
   const {
     title, tokens, stage, substage, wordBatchMap, mode,
     revealed, typingCursor, charArray, cursorWordId,
@@ -16,7 +21,7 @@ export default function MemorizeScreen({ memorize }) {
 
   // Set of word ids that are blanked (hidden) at the current substage level.
   const blankedWordIds = useMemo(() => {
-    const wordTokens = tokens.filter(t => t.type === 'word');
+    const wordTokens = tokens.filter((t): t is WordItem => t.type === 'word');
     return new Set(
       wordTokens.filter(wt => isWordBlanked(wt.id, substage, wordBatchMap)).map(wt => wt.id)
     );
@@ -24,8 +29,8 @@ export default function MemorizeScreen({ memorize }) {
 
   // Build the set of word ids that have been fully typed past (cursor is beyond them)
   const typedWordIds = useMemo(() => {
-    if (mode !== 'type') return new Set();
-    const typed = new Set();
+    if (mode !== 'type') return new Set<number>();
+    const typed = new Set<number>();
     for (let i = 0; i < typingCursor && i < charArray.length; i++) {
       const entry = charArray[i];
       if (entry && entry.wordId !== null) {
@@ -40,7 +45,7 @@ export default function MemorizeScreen({ memorize }) {
   // Count how many characters of each word's text have been typed so far.
   const wordProgress = useMemo(() => {
     if (mode !== 'type') return null;
-    const map = new Map();
+    const map = new Map<number, number>();
     for (let i = 0; i < typingCursor && i < charArray.length; i++) {
       const { wordId, isSpace } = charArray[i];
       if (!isSpace && wordId !== null) {
@@ -50,8 +55,8 @@ export default function MemorizeScreen({ memorize }) {
     return map;
   }, [mode, typingCursor, charArray]);
 
-  const handlePrevStage = () => setStage(Math.max(0, stage - 1));
-  const handleNextStage = () => setStage(Math.min(3, stage + 1));
+  const handlePrevStage = () => setStage(Math.max(0, stage - 1) as Stage);
+  const handleNextStage = () => setStage(Math.min(3, stage + 1) as Stage);
 
   return (
     <div className={styles.screen}>

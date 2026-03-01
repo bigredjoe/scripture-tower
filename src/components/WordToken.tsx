@@ -1,5 +1,6 @@
-import React, { useCallback } from 'react';
-import { getBlankDisplay, getPartialBlankDisplay } from '../utils/wordUtils.js';
+import { useCallback } from 'react';
+import { getBlankDisplay, getPartialBlankDisplay } from '../utils/wordUtils';
+import type { WordItem, Stage, Mode } from '../types';
 import styles from './WordToken.module.css';
 
 /**
@@ -15,18 +16,30 @@ import styles from './WordToken.module.css';
  *   - typed      (already typed past in type mode — same as revealed)
  *   - typing-pending (stage 1-3, type mode, not yet typed)
  */
+interface WordTokenProps {
+  token: WordItem;
+  stage: Stage;
+  mode: Mode;
+  isRevealed: boolean;
+  isCursor: boolean;
+  isTyped: boolean;
+  coreCharsTyped: number;
+  onReveal: (id: number) => void;
+  typingError: boolean;
+}
+
 export default function WordToken({
   token,
   stage,
   mode,
   isRevealed,
-  isCursor,        // true if the typing cursor is currently on this word
-  isTyped,         // true if typing cursor has passed this word completely
-  coreCharsTyped,  // number of core chars typed so far (type mode, partial progress)
+  isCursor,
+  isTyped,
+  coreCharsTyped,
   onReveal,
   typingError,
-}) {
-  const { prefix, suffix, core, firstLetter, blankLen } = token;
+}: WordTokenProps) {
+  const { prefix, suffix, core } = token;
 
   const handleClick = useCallback(() => {
     if (stage > 0 && mode === 'click' && !isRevealed) {

@@ -1,5 +1,20 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
+import type { Stage, Mode } from '../types';
 import styles from './Controls.module.css';
+
+interface ControlsProps {
+  stage: Stage;
+  substage: number;
+  numSubstages: number;
+  mode: Mode;
+  onPrevStage: () => void;
+  onNextStage: () => void;
+  onSetMode: (mode: Mode) => void;
+  onRevealAll: () => void;
+  onReset: () => void;
+  onNextSubstage: () => void;
+  onBack: () => void;
+}
 
 export default function Controls({
   stage,
@@ -13,7 +28,7 @@ export default function Controls({
   onReset,
   onNextSubstage,
   onBack,
-}) {
+}: ControlsProps) {
   const [theme,    setTheme]    = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
   const [fontSize, setFontSize] = useState(() => document.documentElement.getAttribute('data-font-size') || 'medium');
 

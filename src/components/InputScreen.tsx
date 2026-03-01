@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import styles from './InputScreen.module.css';
 
 const EXAMPLE = `For God so loved the world, that he gave his only Son,
@@ -6,7 +6,11 @@ that whoever believes in him should not perish
 but have eternal life.
 — John 3:16`;
 
-export default function InputScreen({ onStart }) {
+interface InputScreenProps {
+  onStart: (title: string, rawText: string) => void;
+}
+
+export default function InputScreen({ onStart }: InputScreenProps) {
   const [title,   setTitle]   = useState('');
   const [rawText, setRawText] = useState('');
   const [error,   setError]   = useState('');
@@ -25,7 +29,7 @@ export default function InputScreen({ onStart }) {
     onStart(title.trim(), trimmed);
   }, [rawText, title, onStart]);
 
-  const handleKeyDown = useCallback(e => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       handleStart();
     }

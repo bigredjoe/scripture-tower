@@ -2,13 +2,18 @@
  * Helpers for per-word display logic and typing-mode cursor.
  */
 
+import type { Token, WordItem, CharEntry, Stage } from '../types';
+
 /**
  * Returns the display string for a hidden word at the given stage.
  *   Stage 1: first letter + dashes  e.g. "l────"  (first letter + length hint)
  *   Stage 2: dashes sized to word   e.g. "─────"  (length hint only)
  *   Stage 3: null                                   (fixed-width CSS blank — no hint at all)
  */
-export function getBlankDisplay(token, stage) {
+export function getBlankDisplay(
+  token: Pick<WordItem, 'firstLetter' | 'blankLen'>,
+  stage: Stage,
+): string | null {
   const len = token.blankLen;
   if (stage === 1) {
     return token.firstLetter + '─'.repeat(Math.max(len - 1, 0));
@@ -27,7 +32,7 @@ export function getBlankDisplay(token, stage) {
  *   Stage 1 & 2: dashes for remaining chars  e.g. "───" (3 left)
  *   Stage 3: null — fixed-width CSS blank (still no length info)
  */
-export function getPartialBlankDisplay(remainingLen, stage) {
+export function getPartialBlankDisplay(remainingLen: number, stage: Stage): string | null {
   if (remainingLen <= 0) return '';
   if (stage === 3) return null;
   return '─'.repeat(remainingLen);
@@ -41,11 +46,11 @@ export function getPartialBlankDisplay(remainingLen, stage) {
  *
  * Returns: Array<{ char: string, wordId: number|null }>
  */
-export function buildCharMap(rawText, tokens) {
-  const charMap = [];
+export function buildCharMap(rawText: string, tokens: Token[]): { char: string; wordId: number | null }[] {
+  const charMap: { char: string; wordId: number | null }[] = [];
   let rawIdx = 0;
 
-  const wordTokens = tokens.filter(t => t.type === 'word');
+  const wordTokens = tokens.filter((t): t is WordItem => t.type === 'word');
   let wordTokenIdx = 0;
 
   while (rawIdx < rawText.length) {
@@ -87,15 +92,15 @@ export const NUM_SUBSTAGES = 4;
  * The assignment is shuffled so the same passage shows different words
  * each session.
  */
-export function computeWordBatchMap(tokens) {
-  const ids = tokens.filter(t => t.type === 'word').map(t => t.id);
+export function computeWordBatchMap(tokens: Token[]): Record<number, number> {
+  const ids = tokens.filter((t): t is WordItem => t.type === 'word').map(t => t.id);
   // Fisher-Yates shuffle
   const shuffled = [...ids];
   for (let i = shuffled.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
-  const map = {};
+  const map: Record<number, number> = {};
   shuffled.forEach((id, idx) => { map[id] = idx % NUM_SUBSTAGES; });
   return map;
 }
@@ -105,7 +110,11 @@ export function computeWordBatchMap(tokens) {
  * batchMap is produced by computeWordBatchMap; when omitted falls back to
  * the predictable modulo assignment (useful in tests / edge cases).
  */
-export function isWordBlanked(wordId, substage, batchMap) {
+export function isWordBlanked(
+  wordId: number,
+  substage: number,
+  batchMap: Record<number, number> | null,
+): boolean {
   if (!substage) return false;
   const batch = batchMap ? batchMap[wordId] : wordId % NUM_SUBSTAGES;
   return batch < substage;
@@ -119,9 +128,9 @@ export function isWordBlanked(wordId, substage, batchMap) {
  * The typing cursor auto-skips both spaces and punctuation chars, so users
  * only need to type the actual word letters.
  */
-export function buildCharArray(rawText, tokens) {
-  const wordTokens = tokens.filter(t => t.type === 'word');
-  const result = [];
+export function buildCharArray(rawText: string, tokens: Token[]): CharEntry[] {
+  const wordTokens = tokens.filter((t): t is WordItem => t.type === 'word');
+  const result: CharEntry[] = [];
   let pos = 0;
   let wtIdx = 0;
 
@@ -161,7 +170,7 @@ export function buildCharArray(rawText, tokens) {
  * Given a typingCursor (index into charArray), find which wordId
  * the cursor is currently inside (or the next word after whitespace).
  */
-export function currentWordId(charArray, cursor) {
+export function currentWordId(charArray: CharEntry[], cursor: number): number | null {
   if (cursor >= charArray.length) return null;
   // scan forward past spaces
   let i = cursor;

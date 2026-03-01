@@ -1,4 +1,4 @@
-import React from 'react';
+import type { Stage } from '../types';
 import styles from './StageBar.module.css';
 
 const STAGES = [
@@ -8,7 +8,12 @@ const STAGES = [
   { label: 'Recall',        desc: 'No hints' },
 ];
 
-export default function StageBar({ stage, onStageChange }) {
+interface StageBarProps {
+  stage: Stage;
+  onStageChange: (stage: Stage) => void;
+}
+
+export default function StageBar({ stage, onStageChange }: StageBarProps) {
   return (
     <nav className={styles.bar} aria-label="Memorization stages">
       {STAGES.map((s, i) => {
@@ -22,7 +27,7 @@ export default function StageBar({ stage, onStageChange }) {
               isActive    ? styles.active    : '',
               isCompleted ? styles.completed : '',
             ].join(' ')}
-            onClick={() => onStageChange(i)}
+            onClick={() => onStageChange(i as Stage)}
             aria-current={isActive ? 'step' : undefined}
             title={s.desc}
           >
