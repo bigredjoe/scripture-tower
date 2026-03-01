@@ -126,9 +126,9 @@ function reducer(state, action) {
         const entry = charArray[justTyped];
         if (entry && entry.wordId !== null && !entry.isPunctuation) {
           const wordId = entry.wordId;
-          // No more core chars for this word between justTyped+1 and nextCursor
+          // No more core chars for this word remaining after the new cursor pos
           const hasMoreCore = charArray
-            .slice(justTyped + 1, nextCursor)
+            .slice(nextCursor)
             .some(e => e.wordId === wordId && !e.isSpace && !e.isPunctuation);
           if (!hasMoreCore) revealed.add(wordId);
         }
