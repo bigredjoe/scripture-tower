@@ -34,12 +34,18 @@ export default function WordToken({
     }
   }, [stage, mode, isRevealed, onReveal, token.id]);
 
+  // Data attributes for E2E test selectors — not used by the UI itself
+  const wordState = (isRevealed || isTyped) ? 'confirmed'
+    : (mode === 'type' && isCursor)         ? 'cursor'
+    : 'plain';
+  const wordProps = { className: styles.word, 'data-word-id': token.id, 'data-state': wordState };
+
   // Stage 0 — text is always visible; type mode adds color confirmation
   if (stage === 0) {
     // Confirmed by typing
     if (isRevealed || isTyped) {
       return (
-        <span className={styles.word}>
+        <span {...wordProps}>
           {prefix}
           <span className={[styles.core, styles.revealed].join(' ')}>{core}</span>
           {suffix}
@@ -52,7 +58,7 @@ export default function WordToken({
       // All core chars typed but suffix still pending
       if (typed >= core.length) {
         return (
-          <span className={styles.word}>
+          <span {...wordProps}>
             {prefix}
             <span className={styles.typedChar}>{core}</span>
             {suffix}
@@ -62,7 +68,7 @@ export default function WordToken({
       // Partial — green typed portion + underlined remaining visible text
       if (typed > 0) {
         return (
-          <span className={styles.word}>
+          <span {...wordProps}>
             {prefix}
             <span className={styles.typedChar}>{core.slice(0, typed)}</span>
             <span className={[
@@ -78,7 +84,7 @@ export default function WordToken({
       }
       // Nothing typed yet — underline whole word as cursor
       return (
-        <span className={styles.word}>
+        <span {...wordProps}>
           {prefix}
           <span className={[
             styles.core,
@@ -93,7 +99,7 @@ export default function WordToken({
     }
     // Plain text (click mode, or type mode not at cursor)
     return (
-      <span className={styles.word}>
+      <span {...wordProps}>
         {prefix}
         <span className={styles.core}>{core}</span>
         {suffix}
@@ -104,7 +110,7 @@ export default function WordToken({
   // Already revealed (by click) or already typed past
   if (isRevealed || isTyped) {
     return (
-      <span className={styles.word}>
+      <span {...wordProps}>
         {prefix}
         <span className={[styles.core, styles.revealed].join(' ')}>{core}</span>
         {suffix}
@@ -127,7 +133,7 @@ export default function WordToken({
     // Show the full green core so the word doesn't flash back to a blank.
     if (typed >= core.length && !isTyped) {
       return (
-        <span className={styles.word}>
+        <span {...wordProps}>
           {prefix}
           <span className={styles.typedChar}>{core}</span>
           {suffix}
@@ -139,7 +145,7 @@ export default function WordToken({
       // Show typed characters so far + shrinking blank for the rest
       const remainingDisplay = getPartialBlankDisplay(remainingLen, stage);
       return (
-        <span className={styles.word}>
+        <span {...wordProps}>
           {prefix}
           <span className={styles.typedChar}>{core.slice(0, typed)}</span>
           <span
@@ -160,7 +166,7 @@ export default function WordToken({
 
     // Full blank (not yet started on this word)
     return (
-      <span className={styles.word}>
+      <span {...wordProps}>
         {prefix}
         <span
           className={[
@@ -180,7 +186,7 @@ export default function WordToken({
 
   // Click mode — hidden word
   return (
-    <span className={styles.word}>
+    <span {...wordProps}>
       {prefix}
       <span
         className={[
