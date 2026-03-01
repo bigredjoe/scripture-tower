@@ -31,10 +31,7 @@ export default function ProgressCounter({ revealed, total, stage, mode, typingCu
   return (
     <div className={styles.counter}>
       <span className={styles.label}>
-        {done
-          ? '🎉 All words revealed!'
-          : <><strong>{revealed}</strong> / {total} words revealed</>
-        }
+        <strong>{revealed}</strong> / {total} words revealed
       </span>
       <div className={styles.barWrap}>
         <div

@@ -8,7 +8,7 @@ import styles from './MemorizeScreen.module.css';
 
 export default function MemorizeScreen({ memorize }) {
   const {
-    title, tokens, stage, substage, mode,
+    title, tokens, stage, substage, wordBatchMap, mode,
     revealed, typingCursor, charArray, cursorWordId,
     typingError, totalWords, revealedCount,
     setStage, setMode, revealWord, revealAll, reset, nextSubstage, backToInput,
@@ -18,9 +18,9 @@ export default function MemorizeScreen({ memorize }) {
   const blankedWordIds = useMemo(() => {
     const wordTokens = tokens.filter(t => t.type === 'word');
     return new Set(
-      wordTokens.filter(wt => isWordBlanked(wt.id, substage)).map(wt => wt.id)
+      wordTokens.filter(wt => isWordBlanked(wt.id, substage, wordBatchMap)).map(wt => wt.id)
     );
-  }, [tokens, substage]);
+  }, [tokens, substage, wordBatchMap]);
 
   // Build the set of word ids that have been fully typed past (cursor is beyond them)
   const typedWordIds = useMemo(() => {

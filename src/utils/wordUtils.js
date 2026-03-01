@@ -78,17 +78,37 @@ export function buildCharMap(rawText, tokens) {
 
 /**
  * Number of progressive batches within each stage.
- * At substage N, words whose (id % NUM_SUBSTAGES) < N are hidden.
  */
 export const NUM_SUBSTAGES = 4;
 
 /**
- * Returns true if the word is hidden at the given substage level.
- * Words are interleaved into NUM_SUBSTAGES batches by their id so that
- * blanking spreads evenly across the text as substage increases.
+ * Build a randomised batch assignment for all word tokens.
+ * Returns a plain object mapping wordId → batchIndex (0-based).
+ * The assignment is shuffled so the same passage shows different words
+ * each session.
  */
-export function isWordBlanked(wordId, substage) {
-  return substage > 0 && (wordId % NUM_SUBSTAGES) < substage;
+export function computeWordBatchMap(tokens) {
+  const ids = tokens.filter(t => t.type === 'word').map(t => t.id);
+  // Fisher-Yates shuffle
+  const shuffled = [...ids];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  const map = {};
+  shuffled.forEach((id, idx) => { map[id] = idx % NUM_SUBSTAGES; });
+  return map;
+}
+
+/**
+ * Returns true if the word is hidden at the given substage level.
+ * batchMap is produced by computeWordBatchMap; when omitted falls back to
+ * the predictable modulo assignment (useful in tests / edge cases).
+ */
+export function isWordBlanked(wordId, substage, batchMap) {
+  if (!substage) return false;
+  const batch = batchMap ? batchMap[wordId] : wordId % NUM_SUBSTAGES;
+  return batch < substage;
 }
 
 /**

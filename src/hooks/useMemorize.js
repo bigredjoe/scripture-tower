@@ -1,6 +1,6 @@
 import { useReducer, useEffect, useCallback } from 'react';
 import { parseText, countWords } from '../utils/parseText.js';
-import { buildCharArray, isWordBlanked, NUM_SUBSTAGES } from '../utils/wordUtils.js';
+import { buildCharArray, isWordBlanked, computeWordBatchMap, NUM_SUBSTAGES } from '../utils/wordUtils.js';
 
 // ── Action Types ───────────────────────────────────────────
 const START          = 'START';
@@ -21,6 +21,7 @@ const initialState = {
   rawText:       '',
   tokens:        [],
   charArray:     [],    // flat char-level array for typing mode
+  wordBatchMap:  {},    // randomised wordId → batchIndex (0-based), set on START
   stage:         0,
   substage:      0,     // 1..NUM_SUBSTAGES within each stage; 0 means no stage entered yet
   mode:          'click',
@@ -32,12 +33,12 @@ const initialState = {
 // ── Helper: should this charArray entry be skipped by the typing cursor? ──
 // Spaces, punctuation, non-blanked words (per substage), and already-revealed
 // words are all auto-skipped.  Stage 0 skips nothing (type the full text).
-function shouldSkipChar(entry, stage, substage, revealed) {
+function shouldSkipChar(entry, stage, substage, revealed, batchMap) {
   if (entry.isSpace || entry.isPunctuation) return true;
   if (entry.wordId === null) return true;
   if (stage === 0) return false;
   if (revealed.has(entry.wordId)) return true;
-  return !isWordBlanked(entry.wordId, substage);
+  return !isWordBlanked(entry.wordId, substage, batchMap);
 }
 
 // ── Reducer ────────────────────────────────────────────────
@@ -45,8 +46,9 @@ function reducer(state, action) {
   switch (action.type) {
 
     case START: {
-      const tokens    = parseText(action.rawText);
-      const charArray = buildCharArray(action.rawText, tokens);
+      const tokens      = parseText(action.rawText);
+      const charArray   = buildCharArray(action.rawText, tokens);
+      const wordBatchMap = computeWordBatchMap(tokens);
       return {
         ...initialState,
         screen:    'memorize',
@@ -54,6 +56,7 @@ function reducer(state, action) {
         rawText:   action.rawText,
         tokens,
         charArray,
+        wordBatchMap,
         stage:     0,
         substage:  0,
         mode:      'click',
@@ -133,10 +136,10 @@ function reducer(state, action) {
 
       // In type mode: auto-advance substage when all blanked words are typed
       if (state.mode === 'type' && state.stage > 0 && state.substage < NUM_SUBSTAGES) {
-        const { stage, substage } = state;
+        const { stage, substage, wordBatchMap } = state;
         const anyRemaining = charArray.slice(nextCursor).some(
           e => !e.isSpace && !e.isPunctuation && e.wordId !== null
-               && isWordBlanked(e.wordId, substage) && !revealed.has(e.wordId)
+               && isWordBlanked(e.wordId, substage, wordBatchMap) && !revealed.has(e.wordId)
         );
         if (!anyRemaining) {
           return {
@@ -210,13 +213,13 @@ export function useMemorize() {
       // Only handle printable single characters
       if (e.key.length !== 1) return;
 
-      const { charArray, typingCursor, stage, substage, revealed } = state;
+      const { charArray, typingCursor, stage, substage, revealed, wordBatchMap } = state;
 
       // Find the next character the user needs to type, skipping over
       // spaces, punctuation, non-blanked words, and already-revealed words.
       let cursor = typingCursor;
       while (cursor < charArray.length &&
-             shouldSkipChar(charArray[cursor], stage, substage, revealed)) {
+             shouldSkipChar(charArray[cursor], stage, substage, revealed, wordBatchMap)) {
         cursor++;
       }
 
@@ -229,7 +232,7 @@ export function useMemorize() {
         // Advance past this char, then skip to next typeable position
         let next = cursor + 1;
         while (next < charArray.length &&
-               shouldSkipChar(charArray[next], stage, substage, revealed)) {
+               shouldSkipChar(charArray[next], stage, substage, revealed, wordBatchMap)) {
           next++;
         }
         dispatch({ type: ADVANCE_CURSOR, nextCursor: next, justTyped: cursor });
@@ -254,15 +257,15 @@ export function useMemorize() {
   // Skip spaces, punctuation, non-blanked words, and already-revealed words.
   const cursorWordId = (() => {
     if (state.mode !== 'type' || state.screen !== 'memorize') return null;
-    const { charArray, typingCursor, stage, substage, revealed } = state;
+    const { charArray, typingCursor, stage, substage, revealed, wordBatchMap } = state;
     let i = typingCursor;
     while (i < charArray.length &&
-           shouldSkipChar(charArray[i], stage, substage, revealed)) i++;
+           shouldSkipChar(charArray[i], stage, substage, revealed, wordBatchMap)) i++;
     return i < charArray.length ? charArray[i].wordId : null;
   })();
 
   return {
-    ...state,
+    ...state,       // includes wordBatchMap
     totalWords,
     revealedCount,
     progress,
