@@ -177,7 +177,7 @@ export function useMemorize() {
 
       const expected = charArray[cursor].char;
 
-      if (e.key === expected) {
+      if (e.key.toLowerCase() === expected.toLowerCase()) {
         e.preventDefault();
         // Advance past this char, then skip to the next typeable (non-space, non-punct) position
         let next = cursor + 1;
