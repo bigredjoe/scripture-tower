@@ -1,8 +1,23 @@
+/* Visually-hidden input that captures mobile soft-keyboard events */
+.hiddenInput {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: -1;
+  border: none;
+  padding: 0;
+}
+
 .screen {
   max-width: 780px;
   margin: 0 auto;
-  padding: 1.5rem 1.5rem 2rem;
+  padding: 1.5rem 1.5rem calc(2rem + env(safe-area-inset-bottom));
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
   gap: 0;

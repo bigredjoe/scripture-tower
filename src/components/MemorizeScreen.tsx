@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef, useEffect } from 'react';
 import StageBar        from './StageBar';
 import Controls        from './Controls';
 import ProgressCounter from './ProgressCounter';
@@ -58,8 +58,30 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
   const handlePrevStage = () => setStage(Math.max(0, stage - 1) as Stage);
   const handleNextStage = () => setStage(Math.min(3, stage + 1) as Stage);
 
+  // Hidden input to capture mobile keyboard input in type mode
+  const hiddenInputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (mode === 'type') {
+      hiddenInputRef.current?.focus();
+    }
+  }, [mode]);
+
   return (
     <div className={styles.screen}>
+      {/* Hidden input captures mobile soft-keyboard events in type mode */}
+      {mode === 'type' && (
+        <input
+          ref={hiddenInputRef}
+          className={styles.hiddenInput}
+          type="text"
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+          spellCheck={false}
+          aria-hidden="true"
+          onInput={e => { (e.target as HTMLInputElement).value = ''; }}
+        />
+      )}
       <header className={styles.header}>
         <div className={styles.titleRow}>
           {title && <h1 className={styles.title}>{title}</h1>}
