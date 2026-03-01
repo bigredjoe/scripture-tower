@@ -140,6 +140,96 @@ test.describe('Stage 1 — first letters, type mode', () => {
   });
 });
 
+// ── mobile keyboard support ─────────────────────────────────────────────────
+
+test.describe('Mobile keyboard support', () => {
+  test.beforeEach(async ({ page }) => {
+    await startApp(page);
+    await switchToTypeMode(page);
+  });
+
+  test('hidden input exists in the DOM when type mode is active', async ({ page }) => {
+    await expect(page.locator('input[aria-hidden="true"]')).toBeAttached();
+  });
+
+  test('hidden input is absent in click mode', async ({ page }) => {
+    await page.locator('button', { hasText: 'Click mode' }).click();
+    await expect(page.locator('input[aria-hidden="true"]')).not.toBeAttached();
+  });
+
+  test('hidden input receives focus when type mode activates', async ({ page }) => {
+    await expect(page.locator('input[aria-hidden="true"]')).toBeFocused();
+  });
+
+  test('typing via the hidden input element confirms words (mobile keyboard simulation)', async ({ page }) => {
+    const input = page.locator('input[aria-hidden="true"]');
+    // pressSequentially dispatches keydown events that bubble to the window listener
+    await input.pressSequentially('hello');
+    await expect(word(page, 0)).toHaveAttribute('data-state', 'confirmed');
+  });
+
+  test('full text can be confirmed by typing through the hidden input', async ({ page }) => {
+    const input = page.locator('input[aria-hidden="true"]');
+    await input.pressSequentially('hello');
+    await input.pressSequentially('world');
+    // Both words confirmed — counter shows 2 / 2
+    await expect(page.locator('strong').filter({ hasText: '2' })).toBeVisible();
+  });
+
+  test('wrong key typed into hidden input does not confirm the word', async ({ page }) => {
+    const input = page.locator('input[aria-hidden="true"]');
+    await input.press('z'); // 'z' is wrong — expected 'h'
+    await expect(word(page, 0)).not.toHaveAttribute('data-state', 'confirmed');
+  });
+
+  test('hidden input re-gains focus when type mode is toggled off then on', async ({ page }) => {
+    // Toggle to click mode
+    await page.locator('button', { hasText: 'Click mode' }).click();
+    await expect(page.locator('input[aria-hidden="true"]')).not.toBeAttached();
+    // Toggle back to type mode
+    await page.locator('button', { hasText: 'Type mode' }).click();
+    await expect(page.locator('input[aria-hidden="true"]')).toBeFocused();
+  });
+});
+
+// ── PWA ─────────────────────────────────────────────────────────────────────
+
+test.describe('PWA', () => {
+  test('web app manifest link is present in the HTML head', async ({ page }) => {
+    await page.goto('/');
+    const manifestLink = page.locator('link[rel="manifest"]');
+    await expect(manifestLink).toHaveAttribute('href', /manifest\.webmanifest/);
+  });
+
+  test('manifest link points to a webmanifest URL', async ({ page }) => {
+    await page.goto('/');
+    const href = await page.locator('link[rel="manifest"]').getAttribute('href');
+    expect(href).toBe('/manifest.webmanifest');
+  });
+
+  test('iOS home screen meta tags are present', async ({ page }) => {
+    await page.goto('/');
+    const capable = page.locator('meta[name="apple-mobile-web-app-capable"]');
+    await expect(capable).toHaveAttribute('content', 'yes');
+    const title = page.locator('meta[name="apple-mobile-web-app-title"]');
+    await expect(title).toHaveAttribute('content', 'Scripture Tower');
+    const icon = page.locator('link[rel="apple-touch-icon"]');
+    await expect(icon).toHaveAttribute('href', '/apple-touch-icon.png');
+  });
+
+  test('theme-color meta tag is present', async ({ page }) => {
+    await page.goto('/');
+    const themeColor = page.locator('meta[name="theme-color"]');
+    await expect(themeColor).toHaveAttribute('content', '#c8933a');
+  });
+
+  test('viewport includes viewport-fit=cover for iOS safe areas', async ({ page }) => {
+    await page.goto('/');
+    const viewport = page.locator('meta[name="viewport"]');
+    await expect(viewport).toHaveAttribute('content', /viewport-fit=cover/);
+  });
+});
+
 // ── navigation ─────────────────────────────────────────────────────────────
 
 test.describe('Navigation', () => {
