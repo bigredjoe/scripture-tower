@@ -7,20 +7,22 @@ import styles from './TextDisplay.module.css';
  * and paragraph breaks preserved.
  *
  * Props:
- *   tokens       - Token[]
- *   stage        - 0|1|2|3
- *   mode         - 'click'|'type'
- *   revealed     - Set<number> of revealed word ids (click mode)
- *   cursorWordId - number|null — the word id currently at the typing cursor
- *   typedWordIds - Set<number> — words whose chars have all been typed past
- *   typingError  - boolean — flashes the cursor word
- *   onReveal     - (id: number) => void
+ *   tokens        - Token[]
+ *   stage         - 0|1|2|3
+ *   mode          - 'click'|'type'
+ *   revealed      - Set<number> of revealed word ids (click mode)
+ *   blankedWordIds - Set<number> of words hidden at the current substage level
+ *   cursorWordId  - number|null — the word id currently at the typing cursor
+ *   typedWordIds  - Set<number> — words whose chars have all been typed past
+ *   typingError   - boolean — flashes the cursor word
+ *   onReveal      - (id: number) => void
  */
 export default function TextDisplay({
   tokens,
   stage,
   mode,
   revealed,
+  blankedWordIds,
   cursorWordId,
   typedWordIds,
   wordProgress,
@@ -59,6 +61,11 @@ export default function TextDisplay({
       const isTyped    = typedWordIds ? typedWordIds.has(token.id) : false;
       const isCursor   = cursorWordId === token.id;
 
+      // Words not yet in the current batch are shown at stage 0 (fully visible).
+      // Words that are blanked at the current substage level use the real stage.
+      const effectiveStage =
+        stage > 0 && blankedWordIds && !blankedWordIds.has(token.id) ? 0 : stage;
+
       // How many characters of token.core have been typed so far.
       // wordProgress counts total chars typed in the whole token text (prefix+core+suffix).
       // Subtract prefix length to get into the core.
@@ -72,7 +79,7 @@ export default function TextDisplay({
         <React.Fragment key={token.id}>
           <WordToken
             token={token}
-            stage={stage}
+            stage={effectiveStage}
             mode={mode}
             isRevealed={isRevealed}
             isCursor={isCursor}
@@ -88,7 +95,7 @@ export default function TextDisplay({
 
     flushLine('line');
     return out;
-  }, [tokens, stage, mode, revealed, cursorWordId, typedWordIds, wordProgress, typingError, onReveal]);
+  }, [tokens, stage, mode, revealed, blankedWordIds, cursorWordId, typedWordIds, wordProgress, typingError, onReveal]);
 
   return (
     <div

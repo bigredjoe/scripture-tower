@@ -3,12 +3,15 @@ import styles from './Controls.module.css';
 
 export default function Controls({
   stage,
+  substage,
+  numSubstages,
   mode,
   onPrevStage,
   onNextStage,
   onSetMode,
   onRevealAll,
   onReset,
+  onNextSubstage,
   onBack,
 }) {
   const [theme,    setTheme]    = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
@@ -70,6 +73,15 @@ export default function Controls({
         {stage > 0 && mode === 'click' && (
           <button className="btn-secondary" onClick={onRevealAll} title="Reveal all hidden words">
             Reveal all
+          </button>
+        )}
+        {stage > 0 && substage < numSubstages && (
+          <button
+            className="btn-secondary"
+            onClick={onNextSubstage}
+            title={`Add the next batch of hidden words (step ${substage}/${numSubstages})`}
+          >
+            + More words
           </button>
         )}
         <button className="btn-ghost" onClick={onReset} title="Reset — hide all words again">

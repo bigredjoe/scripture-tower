@@ -3,15 +3,24 @@ import StageBar        from './StageBar.jsx';
 import Controls        from './Controls.jsx';
 import ProgressCounter from './ProgressCounter.jsx';
 import TextDisplay     from './TextDisplay.jsx';
+import { isWordBlanked, NUM_SUBSTAGES } from '../utils/wordUtils.js';
 import styles from './MemorizeScreen.module.css';
 
 export default function MemorizeScreen({ memorize }) {
   const {
-    title, tokens, stage, mode,
+    title, tokens, stage, substage, mode,
     revealed, typingCursor, charArray, cursorWordId,
     typingError, totalWords, revealedCount,
-    setStage, setMode, revealWord, revealAll, reset, backToInput,
+    setStage, setMode, revealWord, revealAll, reset, nextSubstage, backToInput,
   } = memorize;
+
+  // Set of word ids that are blanked (hidden) at the current substage level.
+  const blankedWordIds = useMemo(() => {
+    const wordTokens = tokens.filter(t => t.type === 'word');
+    return new Set(
+      wordTokens.filter(wt => isWordBlanked(wt.id, substage)).map(wt => wt.id)
+    );
+  }, [tokens, substage]);
 
   // Build the set of word ids that have been fully typed past (cursor is beyond them)
   const typedWordIds = useMemo(() => {
@@ -29,10 +38,9 @@ export default function MemorizeScreen({ memorize }) {
   }, [mode, typingCursor, charArray, cursorWordId]);
 
   // Count how many characters of each word's text have been typed so far.
-  // Includes the current cursor word (partial progress).
   const wordProgress = useMemo(() => {
     if (mode !== 'type') return null;
-    const map = new Map(); // wordId -> total chars typed within that word's text
+    const map = new Map();
     for (let i = 0; i < typingCursor && i < charArray.length; i++) {
       const { wordId, isSpace } = charArray[i];
       if (!isSpace && wordId !== null) {
@@ -58,7 +66,7 @@ export default function MemorizeScreen({ memorize }) {
       <main className={styles.main}>
         {mode === 'type' && stage > 0 && (
           <div className={styles.typingHint}>
-            ⌨ Type mode — type each character. Wrong keys are blocked.
+            ⌨ Type mode — step {substage}/{NUM_SUBSTAGES}: type the blanked words.
           </div>
         )}
 
@@ -67,6 +75,7 @@ export default function MemorizeScreen({ memorize }) {
           stage={stage}
           mode={mode}
           revealed={revealed}
+          blankedWordIds={blankedWordIds}
           cursorWordId={cursorWordId}
           typedWordIds={typedWordIds}
           wordProgress={wordProgress}
@@ -75,7 +84,7 @@ export default function MemorizeScreen({ memorize }) {
         />
 
         <ProgressCounter
-          revealed={mode === 'type' ? typedWordIds.size : revealedCount}
+          revealed={revealedCount}
           total={totalWords}
           stage={stage}
           mode={mode}
@@ -87,12 +96,15 @@ export default function MemorizeScreen({ memorize }) {
       <footer className={styles.footer}>
         <Controls
           stage={stage}
+          substage={substage}
+          numSubstages={NUM_SUBSTAGES}
           mode={mode}
           onPrevStage={handlePrevStage}
           onNextStage={handleNextStage}
           onSetMode={setMode}
           onRevealAll={revealAll}
           onReset={reset}
+          onNextSubstage={nextSubstage}
           onBack={backToInput}
         />
       </footer>

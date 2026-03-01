@@ -77,6 +77,21 @@ export function buildCharMap(rawText, tokens) {
 }
 
 /**
+ * Number of progressive batches within each stage.
+ * At substage N, words whose (id % NUM_SUBSTAGES) < N are hidden.
+ */
+export const NUM_SUBSTAGES = 4;
+
+/**
+ * Returns true if the word is hidden at the given substage level.
+ * Words are interleaved into NUM_SUBSTAGES batches by their id so that
+ * blanking spreads evenly across the text as substage increases.
+ */
+export function isWordBlanked(wordId, substage) {
+  return substage > 0 && (wordId % NUM_SUBSTAGES) < substage;
+}
+
+/**
  * Return the raw text as an array of characters with their wordId.
  * Each entry: { char, wordId, isSpace, isPunctuation }
  *
