@@ -140,6 +140,50 @@ test.describe('Stage 1 — first letters, type mode', () => {
   });
 });
 
+// ── Regression: non-blanked words must not turn green in stage 1 type mode ──
+//
+// Root cause: typedWordIds was built by scanning all charArray entries from 0
+// to typingCursor, including entries for visible (non-blanked) words the cursor
+// silently jumped over.  Those words ended up in typedWordIds and rendered
+// as confirmed (green) even though the user never typed them.
+//
+// Math.random is mocked to 0 so computeWordBatchMap is deterministic:
+//   "one two three four five six"   ids 0..5
+//   shuffled → [1,2,3,4,5,0]  batchMap: {1:0, 2:1, 3:2, 4:3, 5:0, 0:1}
+//   blanked at substage 1 (batch < 1): wordId=1 ("two"), wordId=5 ("six")
+//   visible at substage 1: wordId=0 ("one"), 2 ("three"), 3 ("four"), 4 ("five")
+
+test.describe('Regression: stage 1 visible words do not spuriously turn green', () => {
+  test.beforeEach(async ({ page }) => {
+    // Deterministic batch assignment — same every run
+    await page.addInitScript(() => { Math.random = () => 0; });
+    await startApp(page, 'one two three four five six');
+    await page.locator('button', { hasText: 'Next' }).click(); // stage 0 → stage 1
+    await switchToTypeMode(page);
+  });
+
+  test('visible words before and after a blank stay plain when cursor jumps past them', async ({ page }) => {
+    // Before typing: "one" is visible and plain; "two" is the first blank (cursor)
+    await expect(word(page, 0)).toHaveAttribute('data-state', 'plain');   // one — before blank
+    await expect(word(page, 1)).toHaveAttribute('data-state', 'cursor');  // two — first blank
+
+    // Type the first blanked word
+    await page.keyboard.type('two');
+
+    // Only "two" should be confirmed
+    await expect(word(page, 1)).toHaveAttribute('data-state', 'confirmed'); // two — typed
+
+    // All visible words the cursor silently jumped over must remain plain
+    await expect(word(page, 0)).toHaveAttribute('data-state', 'plain');   // one — before blank
+    await expect(word(page, 2)).toHaveAttribute('data-state', 'plain');   // three — between blanks
+    await expect(word(page, 3)).toHaveAttribute('data-state', 'plain');   // four  — between blanks
+    await expect(word(page, 4)).toHaveAttribute('data-state', 'plain');   // five  — between blanks
+
+    // Cursor has moved to the next blank ("six")
+    await expect(word(page, 5)).toHaveAttribute('data-state', 'cursor');  // six — next blank
+  });
+});
+
 // ── mobile keyboard support ─────────────────────────────────────────────────
 
 test.describe('Mobile keyboard support', () => {

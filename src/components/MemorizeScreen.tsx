@@ -34,13 +34,18 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
     for (let i = 0; i < typingCursor && i < charArray.length; i++) {
       const entry = charArray[i];
       if (entry && entry.wordId !== null) {
-        typed.add(entry.wordId);
+        // At stage 0 the user types every word in sequence — add all.
+        // At stage 1+ only blanked words required typing; the cursor silently
+        // skips over visible words, so they must not be marked as confirmed.
+        if (stage === 0 || blankedWordIds.has(entry.wordId)) {
+          typed.add(entry.wordId);
+        }
       }
     }
     // Remove the cursorWordId — it's still in progress
     if (cursorWordId !== null) typed.delete(cursorWordId);
     return typed;
-  }, [mode, typingCursor, charArray, cursorWordId]);
+  }, [mode, typingCursor, charArray, cursorWordId, stage, blankedWordIds]);
 
   // Count how many characters of each word's text have been typed so far.
   const wordProgress = useMemo(() => {

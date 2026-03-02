@@ -7,7 +7,26 @@ import type { MemorizeHookResult, Stage, Mode } from '../types';
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
+// Short text used by most tests
 const RAW = 'hello world';
+
+// Longer text used by stage-1 regression tests.
+// With wordBatchMap { 0:0, 1:1, 2:0 } at substage 1:
+//   alpha (id=0, batch=0) → BLANKED
+//   beta  (id=1, batch=1) → VISIBLE
+//   gamma (id=2, batch=0) → BLANKED
+// charArray positions:
+//   0-4  a,l,p,h,a  (wordId=0)
+//   5    ' '
+//   6-9  b,e,t,a    (wordId=1)
+//   10   ' '
+//   11-15 g,a,m,m,a (wordId=2)
+// After typing all of "alpha" the cursor advances to pos 11 (skip ' ', skip "beta", skip ' ')
+const RAW3     = 'alpha beta gamma';
+const TOKENS3  = parseText(RAW3);
+const CHARS3   = buildCharArray(RAW3, TOKENS3);
+// Deterministic batch map: alpha→0, beta→1, gamma→0
+const BATCH3   = { 0: 0, 1: 1, 2: 0 };
 
 function makeMemorize(overrides: Partial<MemorizeHookResult> = {}): MemorizeHookResult {
   const tokens = parseText(RAW);
@@ -48,6 +67,82 @@ function hiddenInput(): HTMLInputElement | null {
 }
 
 // ── tests ────────────────────────────────────────────────────────────────────
+
+// ── Stage 1 type mode: visible words must not turn green ─────────────────────
+
+describe('MemorizeScreen — stage 1 type mode: non-blanked words stay plain', () => {
+  /**
+   * Simulates the state after the user has fully typed the first blanked word
+   * ("alpha", id=0) and the cursor has advanced to the second blanked word
+   * ("gamma", id=2).  The word between them — "beta" (id=1) — is visible
+   * (not blanked) and was silently skipped by the cursor.
+   *
+   * Before the fix, typedWordIds erroneously included id=1 because all
+   * charArray entries from 0 to typingCursor (11) were added regardless of
+   * whether the word was ever blanked, making "beta" render as confirmed.
+   */
+  it('visible word between two blanks stays plain after first blank is typed', () => {
+    render(
+      <MemorizeScreen
+        memorize={makeMemorize({
+          rawText: RAW3,
+          tokens: TOKENS3,
+          charArray: CHARS3,
+          wordBatchMap: BATCH3,
+          stage: 1 as Stage,
+          substage: 1,
+          mode: 'type',
+          // "alpha" has been confirmed; cursor is now on "gamma"
+          revealed: new Set([0]),
+          typingCursor: 11,   // first char of "gamma"
+          cursorWordId: 2,
+          totalWords: 3,
+        })}
+      />
+    );
+
+    // The typed blank word "alpha" → confirmed ✓
+    expect(document.querySelector('[data-word-id="0"]')).toHaveAttribute('data-state', 'confirmed');
+
+    // The visible (non-blanked) word "beta" between the two blanks → must be plain
+    expect(document.querySelector('[data-word-id="1"]')).toHaveAttribute('data-state', 'plain');
+
+    // The next blank "gamma" → cursor ✓
+    expect(document.querySelector('[data-word-id="2"]')).toHaveAttribute('data-state', 'cursor');
+  });
+
+  it('visible word BEFORE the first blank also stays plain when cursor jumps over it', () => {
+    // Use batchMap where only "gamma" (id=2) is blanked:
+    //   alpha→1 (not blanked), beta→1 (not blanked), gamma→0 (blanked at substage 1)
+    // After typing "gamma" the cursor would be beyond it, but here we set
+    // typingCursor=0 so the cursor jumps all the way to "gamma" on the first keypress.
+    // Even before any typing, typingCursor=0 means typedWordIds should be empty
+    // and the two visible words ahead should be plain, not confirmed.
+    render(
+      <MemorizeScreen
+        memorize={makeMemorize({
+          rawText: RAW3,
+          tokens: TOKENS3,
+          charArray: CHARS3,
+          wordBatchMap: { 0: 1, 1: 1, 2: 0 },
+          stage: 1 as Stage,
+          substage: 1,
+          mode: 'type',
+          revealed: new Set<number>(),
+          typingCursor: 0,
+          cursorWordId: 2,  // cursor already on "gamma" (skipped over alpha, beta)
+          totalWords: 3,
+        })}
+      />
+    );
+
+    expect(document.querySelector('[data-word-id="0"]')).toHaveAttribute('data-state', 'plain');
+    expect(document.querySelector('[data-word-id="1"]')).toHaveAttribute('data-state', 'plain');
+    expect(document.querySelector('[data-word-id="2"]')).toHaveAttribute('data-state', 'cursor');
+  });
+});
+
+// ── Mobile keyboard hidden input ─────────────────────────────────────────────
 
 describe('MemorizeScreen — mobile keyboard hidden input', () => {
   it('does not render a hidden input in click mode', () => {
