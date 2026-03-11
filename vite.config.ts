@@ -2,8 +2,9 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// GitHub Pages serves from /<repo-name>/ — use that base in CI.
-const base = process.env.CI ? '/scripture-tower/' : '/';
+// GitHub Pages serves from /<repo-name>/.
+// VITE_BASE_PATH overrides (used by PR preview builds).
+const base = process.env.VITE_BASE_PATH ?? (process.env.CI ? '/scripture-tower/' : '/');
 
 export default defineConfig({
   base,

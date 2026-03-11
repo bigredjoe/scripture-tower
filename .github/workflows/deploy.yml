@@ -6,9 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write  # needed to push to the gh-pages branch
 
 # Only one deployment at a time; cancel any in-progress run for the same branch.
 concurrency:
@@ -43,9 +41,6 @@ jobs:
     name: Build & Deploy
     needs: test
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -62,12 +57,11 @@ jobs:
         # CI=true is set automatically by GitHub Actions, which causes
         # vite.config.ts to use base='/scripture-tower/' for asset paths.
 
-      - uses: actions/configure-pages@v4
-
-      - uses: actions/upload-pages-artifact@v3
+      - name: Deploy to gh-pages branch
+        uses: peaceiris/actions-gh-pages@v4
         with:
-          path: dist
-
-      - name: Deploy
-        id: deploy
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          # keep_files preserves PR preview subdirectories alongside the
+          # main deployment — rossjrw/pr-preview-action manages those.
+          keep_files: true
