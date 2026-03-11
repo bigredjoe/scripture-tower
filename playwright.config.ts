@@ -14,9 +14,14 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: {
-          executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
-        },
+        // In CI, let Playwright use the browser it installs via
+        // `npx playwright install chromium`.  Locally we reuse the
+        // pre-installed binary to avoid a separate download.
+        ...(!process.env.CI && {
+          launchOptions: {
+            executablePath: '/root/.cache/ms-playwright/chromium-1194/chrome-linux/chrome',
+          },
+        }),
       },
     },
   ],
