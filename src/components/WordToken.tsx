@@ -1,0 +1,221 @@
+import { useCallback } from 'react';
+import { getBlankDisplay, getPartialBlankDisplay } from '../utils/wordUtils';
+import type { WordItem, Stage, Mode } from '../types';
+import styles from './WordToken.module.css';
+
+/**
+ * Renders a single word token in the appropriate state for the current
+ * stage and mode.
+ *
+ * States:
+ *   - visible    (stage 0, or word has been revealed, or before typing cursor)
+ *   - firstLetter (stage 1, hidden, click mode)
+ *   - blank      (stage 2, hidden, click mode)
+ *   - recall     (stage 3, hidden, click mode)
+ *   - cursor     (current typing cursor position, type mode)
+ *   - typed      (already typed past in type mode — same as revealed)
+ *   - typing-pending (stage 1-3, type mode, not yet typed)
+ */
+interface WordTokenProps {
+  token: WordItem;
+  stage: Stage;
+  mode: Mode;
+  isRevealed: boolean;
+  isCursor: boolean;
+  isTyped: boolean;
+  coreCharsTyped: number;
+  onReveal: (id: number) => void;
+  typingError: boolean;
+}
+
+export default function WordToken({
+  token,
+  stage,
+  mode,
+  isRevealed,
+  isCursor,
+  isTyped,
+  coreCharsTyped,
+  onReveal,
+  typingError,
+}: WordTokenProps) {
+  const { prefix, suffix, core } = token;
+
+  const handleClick = useCallback(() => {
+    if (stage > 0 && mode === 'click' && !isRevealed) {
+      onReveal(token.id);
+    }
+  }, [stage, mode, isRevealed, onReveal, token.id]);
+
+  // Data attributes for E2E test selectors — not used by the UI itself
+  const wordState = (isRevealed || isTyped) ? 'confirmed'
+    : (mode === 'type' && isCursor)         ? 'cursor'
+    : 'plain';
+  const wordProps = { className: styles.word, 'data-word-id': token.id, 'data-state': wordState };
+
+  // Stage 0 — text is always visible; type mode adds color confirmation
+  if (stage === 0) {
+    // Confirmed by typing
+    if (isRevealed || isTyped) {
+      return (
+        <span {...wordProps}>
+          {prefix}
+          <span className={[styles.core, styles.revealed].join(' ')}>{core}</span>
+          {suffix}
+        </span>
+      );
+    }
+    // Cursor word (currently being typed)
+    if (mode === 'type' && isCursor) {
+      const typed = coreCharsTyped || 0;
+      // All core chars typed but suffix still pending
+      if (typed >= core.length) {
+        return (
+          <span {...wordProps}>
+            {prefix}
+            <span className={styles.typedChar}>{core}</span>
+            {suffix}
+          </span>
+        );
+      }
+      // Partial — green typed portion + underlined remaining visible text
+      if (typed > 0) {
+        return (
+          <span {...wordProps}>
+            {prefix}
+            <span className={styles.typedChar}>{core.slice(0, typed)}</span>
+            <span className={[
+              styles.core,
+              styles.cursorWord,
+              typingError ? styles.errorFlash : '',
+            ].join(' ')}>
+              {core.slice(typed)}
+            </span>
+            {suffix}
+          </span>
+        );
+      }
+      // Nothing typed yet — underline whole word as cursor
+      return (
+        <span {...wordProps}>
+          {prefix}
+          <span className={[
+            styles.core,
+            styles.cursorWord,
+            typingError ? styles.errorFlash : '',
+          ].join(' ')}>
+            {core}
+          </span>
+          {suffix}
+        </span>
+      );
+    }
+    // Plain text (click mode, or type mode not at cursor)
+    return (
+      <span {...wordProps}>
+        {prefix}
+        <span className={styles.core}>{core}</span>
+        {suffix}
+      </span>
+    );
+  }
+
+  // Already revealed (by click) or already typed past
+  if (isRevealed || isTyped) {
+    return (
+      <span {...wordProps}>
+        {prefix}
+        <span className={[styles.core, styles.revealed].join(' ')}>{core}</span>
+        {suffix}
+      </span>
+    );
+  }
+
+  const display = getBlankDisplay(token, stage);
+  // stage 3 returns null — use a fixed-width CSS blank with no text content
+  const isRecall = display === null;
+
+  // Type mode
+  if (mode === 'type') {
+    const typed        = coreCharsTyped || 0;
+    const remainingLen = core.length - typed;
+    const isPartial    = typed > 0 && remainingLen > 0;
+
+    // All core letters typed but suffix punctuation still pending (e.g. the ',' in "loved,").
+    // isTyped is still false because the cursor hasn't left the word yet.
+    // Show the full green core so the word doesn't flash back to a blank.
+    if (typed >= core.length && !isTyped) {
+      return (
+        <span {...wordProps}>
+          {prefix}
+          <span className={styles.typedChar}>{core}</span>
+          {suffix}
+        </span>
+      );
+    }
+
+    if (isPartial) {
+      // Show typed characters so far + shrinking blank for the rest
+      const remainingDisplay = getPartialBlankDisplay(remainingLen, stage);
+      return (
+        <span {...wordProps}>
+          {prefix}
+          <span className={styles.typedChar}>{core.slice(0, typed)}</span>
+          <span
+            className={[
+              styles.blank,
+              remainingDisplay === null ? styles.recallBlankPartial : '',
+              isCursor ? styles.cursorWord : '',
+              isCursor && typingError ? styles.errorFlash : '',
+            ].join(' ')}
+            aria-label="Hidden word"
+          >
+            {remainingDisplay}
+          </span>
+          {suffix}
+        </span>
+      );
+    }
+
+    // Full blank (not yet started on this word)
+    return (
+      <span {...wordProps}>
+        {prefix}
+        <span
+          className={[
+            styles.blank,
+            isRecall    ? styles.recallBlank : '',
+            isCursor    ? styles.cursorWord  : '',
+            isCursor && typingError ? styles.errorFlash : '',
+          ].join(' ')}
+          aria-label="Hidden word"
+        >
+          {display}
+        </span>
+        {suffix}
+      </span>
+    );
+  }
+
+  // Click mode — hidden word
+  return (
+    <span {...wordProps}>
+      {prefix}
+      <span
+        className={[
+          styles.blank,
+          styles.clickable,
+          isRecall ? styles.recallBlank : '',
+        ].join(' ')}
+        onClick={handleClick}
+        role="button"
+        tabIndex={0}
+        aria-label="Hidden word, click to reveal"
+        onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && handleClick()}
+      >
+        {display}
+      </span>
+      {suffix}
+    </span>
+  );
+}

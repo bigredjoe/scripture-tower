@@ -1,0 +1,291 @@
+import { useReducer, useEffect, useCallback } from 'react';
+import { parseText, countWords } from '../utils/parseText';
+import { buildCharArray, isWordBlanked, computeWordBatchMap, NUM_SUBSTAGES } from '../utils/wordUtils';
+import type { CharEntry, Stage, Mode, MemorizeState, MemorizeHookResult, WordItem } from '../types';
+
+// ── Action Types ───────────────────────────────────────────
+type MemorizeAction =
+  | { type: 'START'; title: string; rawText: string }
+  | { type: 'SET_STAGE'; stage: Stage }
+  | { type: 'SET_MODE'; mode: Mode }
+  | { type: 'REVEAL_WORD'; id: number }
+  | { type: 'REVEAL_ALL' }
+  | { type: 'RESET' }
+  | { type: 'ADVANCE_CURSOR'; nextCursor: number; justTyped: number }
+  | { type: 'SET_ERROR'; value: boolean }
+  | { type: 'BACK_TO_INPUT' }
+  | { type: 'NEXT_SUBSTAGE' };
+
+// ── Initial State ──────────────────────────────────────────
+const initialState: MemorizeState = {
+  screen:       'input',
+  title:        '',
+  rawText:      '',
+  tokens:       [],
+  charArray:    [],    // flat char-level array for typing mode
+  wordBatchMap: {},    // randomised wordId → batchIndex (0-based), set on START
+  stage:        0,
+  substage:     0,     // 1..NUM_SUBSTAGES within each stage; 0 means no stage entered yet
+  mode:         'click',
+  revealed:     new Set(),
+  typingCursor: 0,
+  typingError:  false,
+};
+
+// ── Helper: should this charArray entry be skipped by the typing cursor? ──
+// Spaces, punctuation, already-confirmed words, and non-blanked words (per
+// substage) are all auto-skipped.  Stage 0 skips nothing beyond the above.
+function shouldSkipChar(
+  entry: CharEntry,
+  stage: Stage,
+  substage: number,
+  revealed: Set<number>,
+  batchMap: Record<number, number>,
+): boolean {
+  if (entry.isSpace || entry.isPunctuation) return true;
+  if (entry.wordId === null) return true;
+  if (revealed.has(entry.wordId)) return true;
+  if (stage === 0) return false;
+  return !isWordBlanked(entry.wordId, substage, batchMap);
+}
+
+// ── Reducer ────────────────────────────────────────────────
+function reducer(state: MemorizeState, action: MemorizeAction): MemorizeState {
+  switch (action.type) {
+
+    case 'START': {
+      const tokens      = parseText(action.rawText);
+      const charArray   = buildCharArray(action.rawText, tokens);
+      const wordBatchMap = computeWordBatchMap(tokens);
+      return {
+        ...initialState,
+        screen:    'memorize',
+        title:     action.title,
+        rawText:   action.rawText,
+        tokens,
+        charArray,
+        wordBatchMap,
+        stage:     0,
+        substage:  0,
+        mode:      'click',
+        revealed:  new Set(),
+        typingCursor: 0,
+      };
+    }
+
+    case 'SET_STAGE':
+      return {
+        ...state,
+        stage:        action.stage,
+        substage:     action.stage > 0 ? 1 : 0,
+        revealed:     new Set(),
+        typingCursor: 0,
+        typingError:  false,
+      };
+
+    case 'SET_MODE':
+      return {
+        ...state,
+        mode:         action.mode,
+        typingCursor: 0,
+        typingError:  false,
+        // Keep revealed and substage — progress persists across mode switches
+      };
+
+    case 'REVEAL_WORD': {
+      const revealed = new Set(state.revealed);
+      revealed.add(action.id);
+      return { ...state, revealed };
+    }
+
+    case 'REVEAL_ALL': {
+      const wordIds = state.tokens
+        .filter((t): t is WordItem => t.type === 'word')
+        .map(t => t.id);
+      return { ...state, revealed: new Set(wordIds) };
+    }
+
+    case 'RESET':
+      return {
+        ...state,
+        revealed:     new Set(),
+        substage:     state.stage > 0 ? 1 : 0,
+        typingCursor: 0,
+        typingError:  false,
+      };
+
+    case 'NEXT_SUBSTAGE':
+      return {
+        ...state,
+        substage:     Math.min(state.substage + 1, NUM_SUBSTAGES),
+        typingCursor: 0,
+        typingError:  false,
+        // Keep revealed — already-typed/clicked words stay green
+      };
+
+    case 'ADVANCE_CURSOR': {
+      const { nextCursor, justTyped } = action;
+      const revealed  = new Set(state.revealed);
+      const charArray = state.charArray;
+
+      // Mark the word that was just completed as revealed so it stays green
+      // across mode switches and substage advances.
+      if (justTyped >= 0 && justTyped < charArray.length) {
+        const entry = charArray[justTyped];
+        if (entry && entry.wordId !== null && !entry.isPunctuation) {
+          const wordId = entry.wordId;
+          // No more core chars for this word remaining after the new cursor pos
+          const hasMoreCore = charArray
+            .slice(nextCursor)
+            .some(e => e.wordId === wordId && !e.isSpace && !e.isPunctuation);
+          if (!hasMoreCore) revealed.add(wordId);
+        }
+      }
+
+      // In type mode: auto-advance substage when all blanked words are typed
+      if (state.mode === 'type' && state.stage > 0 && state.substage < NUM_SUBSTAGES) {
+        const { stage, substage, wordBatchMap } = state;
+        const anyRemaining = charArray.slice(nextCursor).some(
+          e => !e.isSpace && !e.isPunctuation && e.wordId !== null
+               && isWordBlanked(e.wordId, substage, wordBatchMap) && !revealed.has(e.wordId)
+        );
+        if (!anyRemaining) {
+          return {
+            ...state,
+            substage:     substage + 1,
+            typingCursor: 0,
+            revealed,
+            typingError:  false,
+          };
+        }
+      }
+
+      return { ...state, typingCursor: nextCursor, revealed, typingError: false };
+    }
+
+    case 'SET_ERROR':
+      return { ...state, typingError: action.value };
+
+    case 'BACK_TO_INPUT':
+      return { ...initialState };
+
+    default:
+      return state;
+  }
+}
+
+// ── Hook ───────────────────────────────────────────────────
+export function useMemorize(): MemorizeHookResult {
+  const [state, dispatch] = useReducer(reducer, initialState);
+
+  // ── Actions ──
+  const start = useCallback((title: string, rawText: string) => {
+    dispatch({ type: 'START', title, rawText });
+  }, []);
+
+  const setStage = useCallback((stage: Stage) => {
+    dispatch({ type: 'SET_STAGE', stage });
+  }, []);
+
+  const setMode = useCallback((mode: Mode) => {
+    dispatch({ type: 'SET_MODE', mode });
+  }, []);
+
+  const revealWord = useCallback((id: number) => {
+    dispatch({ type: 'REVEAL_WORD', id });
+  }, []);
+
+  const revealAll = useCallback(() => {
+    dispatch({ type: 'REVEAL_ALL' });
+  }, []);
+
+  const reset = useCallback(() => {
+    dispatch({ type: 'RESET' });
+  }, []);
+
+  const nextSubstage = useCallback(() => {
+    dispatch({ type: 'NEXT_SUBSTAGE' });
+  }, []);
+
+  const backToInput = useCallback(() => {
+    dispatch({ type: 'BACK_TO_INPUT' });
+  }, []);
+
+  // ── Keyboard handler for type mode ──
+  useEffect(() => {
+    if (state.screen !== 'memorize' || state.mode !== 'type') return;
+
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ignore modifier-key combos (Ctrl+C etc.)
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Only handle printable single characters
+      if (e.key.length !== 1) return;
+
+      const { charArray, typingCursor, stage, substage, revealed, wordBatchMap } = state;
+
+      // Find the next character the user needs to type, skipping over
+      // spaces, punctuation, non-blanked words, and already-revealed words.
+      let cursor = typingCursor;
+      while (cursor < charArray.length &&
+             shouldSkipChar(charArray[cursor], stage, substage, revealed, wordBatchMap)) {
+        cursor++;
+      }
+
+      if (cursor >= charArray.length) return; // nothing left to type
+
+      const expected = charArray[cursor].char;
+
+      if (e.key.toLowerCase() === expected.toLowerCase()) {
+        e.preventDefault();
+        // Advance past this char, then skip to next typeable position
+        let next = cursor + 1;
+        while (next < charArray.length &&
+               shouldSkipChar(charArray[next], stage, substage, revealed, wordBatchMap)) {
+          next++;
+        }
+        dispatch({ type: 'ADVANCE_CURSOR', nextCursor: next, justTyped: cursor });
+      } else {
+        e.preventDefault();
+        dispatch({ type: 'SET_ERROR', value: true });
+        setTimeout(() => dispatch({ type: 'SET_ERROR', value: false }), 400);
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [state.screen, state.mode, state.charArray, state.typingCursor,
+      state.stage, state.substage, state.revealed]);
+
+  // ── Derived values ──
+  const totalWords    = countWords(state.tokens);
+  const revealedCount = state.revealed.size;
+  const progress      = totalWords > 0 ? revealedCount / totalWords : 0;
+
+  // In type mode, the cursor sits on the next blanked-and-untyped core char.
+  // Skip spaces, punctuation, non-blanked words, and already-revealed words.
+  const cursorWordId = (() => {
+    if (state.mode !== 'type' || state.screen !== 'memorize') return null;
+    const { charArray, typingCursor, stage, substage, revealed, wordBatchMap } = state;
+    let i = typingCursor;
+    while (i < charArray.length &&
+           shouldSkipChar(charArray[i], stage, substage, revealed, wordBatchMap)) i++;
+    return i < charArray.length ? charArray[i].wordId : null;
+  })();
+
+  return {
+    ...state,       // includes wordBatchMap
+    totalWords,
+    revealedCount,
+    progress,
+    cursorWordId,
+    // Actions
+    start,
+    setStage,
+    setMode,
+    revealWord,
+    revealAll,
+    reset,
+    nextSubstage,
+    backToInput,
+  };
+}
