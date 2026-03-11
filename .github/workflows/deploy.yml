@@ -1,16 +1,12 @@
-name: Deploy to GitHub Pages
+name: Deploy
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
+  pull_request:
 
-permissions:
-  contents: write  # needed to push to the gh-pages branch
-
-# Only one deployment at a time; cancel any in-progress run for the same branch.
 concurrency:
-  group: pages
+  group: deploy-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -37,10 +33,14 @@ jobs:
       - name: E2E tests
         run: npm run test:e2e
 
-  build-and-deploy:
-    name: Build & Deploy
+  deploy:
+    name: Deploy to Cloudflare Pages
     needs: test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write   # required by cloudflare/pages-action
+      pull-requests: write # post preview URL comment on PRs
     steps:
       - uses: actions/checkout@v4
 
@@ -54,14 +54,13 @@ jobs:
 
       - name: Build
         run: npm run build
-        # CI=true is set automatically by GitHub Actions, which causes
-        # vite.config.ts to use base='/scripture-tower/' for asset paths.
 
-      - name: Deploy to gh-pages branch
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Publish to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
-          # keep_files preserves PR preview subdirectories alongside the
-          # main deployment — rossjrw/pr-preview-action manages those.
-          keep_files: true
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: scripture-tower
+          directory: dist
+          # Posts a comment on PRs with the preview URL.
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}

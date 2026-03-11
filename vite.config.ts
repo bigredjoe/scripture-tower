@@ -2,12 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// GitHub Pages serves from /<repo-name>/.
-// VITE_BASE_PATH overrides (used by PR preview builds).
-const base = process.env.VITE_BASE_PATH ?? (process.env.CI ? '/scripture-tower/' : '/');
-
 export default defineConfig({
-  base,
   plugins: [
     react(),
     VitePWA({
@@ -21,8 +16,8 @@ export default defineConfig({
         background_color: '#fafaf8',
         display: 'standalone',
         orientation: 'portrait-primary',
-        // scope and start_url are omitted — vite-plugin-pwa derives them from
-        // the Vite base path, which is /scripture-tower/ on GitHub Pages.
+        scope: '/',
+        start_url: '/',
         icons: [
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
