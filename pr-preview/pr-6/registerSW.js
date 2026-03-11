@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/scripture-tower/pr-preview/pr-6/sw.js', { scope: '/scripture-tower/pr-preview/pr-6/' })})}
