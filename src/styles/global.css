@@ -113,6 +113,15 @@ button:active:not(:disabled) {
   transform: scale(0.97);
 }
 
+/* Focus-visible ring for all button classes */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-ghost:focus-visible,
+.btn-active:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* Primary button */
 .btn-primary {
   background: var(--accent);

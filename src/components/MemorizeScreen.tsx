@@ -1,8 +1,9 @@
-import { useMemo, useRef, useEffect } from 'react';
+import { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import StageBar        from './StageBar';
 import Controls        from './Controls';
 import ProgressCounter from './ProgressCounter';
 import TextDisplay     from './TextDisplay';
+import KeyboardHelp    from './KeyboardHelp';
 import { isWordBlanked, NUM_SUBSTAGES } from '../utils/wordUtils';
 import type { MemorizeHookResult, WordItem, Stage } from '../types';
 import styles from './MemorizeScreen.module.css';
@@ -19,7 +20,33 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
     setStage, setMode, revealWord, revealAll, reset, nextSubstage, backToInput,
   } = memorize;
 
-  // Set of word ids that are blanked (hidden) at the current substage level.
+  // ── Theme & font size (lifted from Controls) ──
+  const [theme, setThemeState] = useState(
+    () => document.documentElement.getAttribute('data-theme') || 'light'
+  );
+  const [fontSize, setFontSizeState] = useState(
+    () => document.documentElement.getAttribute('data-font-size') || 'medium'
+  );
+
+  const toggleTheme = useCallback(() => {
+    const next = theme === 'light' ? 'dark' : 'light';
+    setThemeState(next);
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('st-theme', next);
+  }, [theme]);
+
+  const cycleFontSize = useCallback(() => {
+    const sizes = ['small', 'medium', 'large'];
+    const next  = sizes[(sizes.indexOf(fontSize) + 1) % sizes.length];
+    setFontSizeState(next);
+    document.documentElement.setAttribute('data-font-size', next);
+    localStorage.setItem('st-font-size', next);
+  }, [fontSize]);
+
+  // ── Help modal ──
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  // ── Derived ──
   const blankedWordIds = useMemo(() => {
     const wordTokens = tokens.filter((t): t is WordItem => t.type === 'word');
     return new Set(
@@ -27,27 +54,21 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
     );
   }, [tokens, substage, wordBatchMap]);
 
-  // Build the set of word ids that have been fully typed past (cursor is beyond them)
   const typedWordIds = useMemo(() => {
     if (mode !== 'type') return new Set<number>();
     const typed = new Set<number>();
     for (let i = 0; i < typingCursor && i < charArray.length; i++) {
       const entry = charArray[i];
       if (entry && entry.wordId !== null) {
-        // At stage 0 the user types every word in sequence — add all.
-        // At stage 1+ only blanked words required typing; the cursor silently
-        // skips over visible words, so they must not be marked as confirmed.
         if (stage === 0 || blankedWordIds.has(entry.wordId)) {
           typed.add(entry.wordId);
         }
       }
     }
-    // Remove the cursorWordId — it's still in progress
     if (cursorWordId !== null) typed.delete(cursorWordId);
     return typed;
   }, [mode, typingCursor, charArray, cursorWordId, stage, blankedWordIds]);
 
-  // Count how many characters of each word's text have been typed so far.
   const wordProgress = useMemo(() => {
     if (mode !== 'type') return null;
     const map = new Map<number, number>();
@@ -60,10 +81,10 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
     return map;
   }, [mode, typingCursor, charArray]);
 
-  const handlePrevStage = () => setStage(Math.max(0, stage - 1) as Stage);
-  const handleNextStage = () => setStage(Math.min(3, stage + 1) as Stage);
+  const handlePrevStage = useCallback(() => setStage(Math.max(0, stage - 1) as Stage), [setStage, stage]);
+  const handleNextStage = useCallback(() => setStage(Math.min(3, stage + 1) as Stage), [setStage, stage]);
 
-  // Hidden input to capture mobile keyboard input in type mode
+  // ── Hidden input to capture mobile keyboard input in type mode ──
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (mode === 'type') {
@@ -71,8 +92,76 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
     }
   }, [mode]);
 
+  // ── Global keyboard shortcuts ──
+  useEffect(() => {
+    function handleShortcut(e: KeyboardEvent) {
+      // Skip modifier combos (let browser handle Ctrl+C, etc.)
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Skip keys originating from real input/textarea elements
+      const tag = (e.target as Element)?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      // ── Shortcuts active in both modes (non-printable keys only) ──
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevStage();
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNextStage();
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        if (helpOpen) { setHelpOpen(false); return; }
+        if (mode === 'type') { setMode('click'); return; }
+        backToInput();
+        return;
+      }
+
+      // ── Click-mode-only single-key shortcuts ──
+      // (In type mode, printable keys are consumed by the typing validator)
+      if (mode !== 'click') return;
+
+      switch (e.key) {
+        case '1': e.preventDefault(); setStage(0); break;
+        case '2': e.preventDefault(); setStage(1); break;
+        case '3': e.preventDefault(); setStage(2); break;
+        case '4': e.preventDefault(); setStage(3); break;
+        case 'm': case 'M':
+          e.preventDefault(); setMode('type'); break;
+        case 'r': case 'R':
+          e.preventDefault(); reset(); break;
+        case 'a': case 'A':
+          if (stage > 0) { e.preventDefault(); revealAll(); }
+          break;
+        case 'w': case 'W':
+          if (stage > 0 && substage < NUM_SUBSTAGES) { e.preventDefault(); nextSubstage(); }
+          break;
+        case 't': case 'T':
+          e.preventDefault(); toggleTheme(); break;
+        case 'f': case 'F':
+          e.preventDefault(); cycleFontSize(); break;
+        case '?':
+          e.preventDefault(); setHelpOpen(h => !h); break;
+      }
+    }
+
+    window.addEventListener('keydown', handleShortcut);
+    return () => window.removeEventListener('keydown', handleShortcut);
+  }, [
+    mode, stage, substage, helpOpen,
+    handlePrevStage, handleNextStage,
+    setStage, setMode, reset, revealAll, nextSubstage,
+    backToInput, toggleTheme, cycleFontSize,
+  ]);
+
   return (
     <div className={styles.screen}>
+      {helpOpen && <KeyboardHelp onClose={() => setHelpOpen(false)} />}
+
       {/* Hidden input captures mobile soft-keyboard events in type mode */}
       {mode === 'type' && (
         <input
@@ -87,6 +176,7 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
           onInput={e => { (e.target as HTMLInputElement).value = ''; }}
         />
       )}
+
       <header className={styles.header}>
         <div className={styles.titleRow}>
           {title && <h1 className={styles.title}>{title}</h1>}
@@ -131,6 +221,8 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
           substage={substage}
           numSubstages={NUM_SUBSTAGES}
           mode={mode}
+          theme={theme}
+          fontSize={fontSize}
           onPrevStage={handlePrevStage}
           onNextStage={handleNextStage}
           onSetMode={setMode}
@@ -138,6 +230,9 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
           onReset={reset}
           onNextSubstage={nextSubstage}
           onBack={backToInput}
+          onToggleTheme={toggleTheme}
+          onCycleFontSize={cycleFontSize}
+          onShowHelp={() => setHelpOpen(true)}
         />
       </footer>
     </div>
