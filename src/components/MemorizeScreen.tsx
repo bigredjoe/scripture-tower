@@ -97,27 +97,32 @@ export default function MemorizeScreen({ memorize }: MemorizeScreenProps) {
     function handleShortcut(e: KeyboardEvent) {
       // Skip modifier combos (let browser handle Ctrl+C, etc.)
       if (e.ctrlKey || e.metaKey || e.altKey) return;
-      // Skip keys originating from real input/textarea elements
-      const tag = (e.target as Element)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      // On the memorize screen the only INPUT is the hidden type-mode capture
+      // element (aria-hidden, never user-facing). Do NOT skip events from it —
+      // that would block Escape and Arrow keys while in type mode.
 
-      // ── Shortcuts active in both modes (non-printable keys only) ──
-
-      if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrevStage();
-        return;
-      }
-      if (e.key === 'ArrowRight') {
-        e.preventDefault();
-        handleNextStage();
-        return;
-      }
+      // ── Escape always works (closes help or exits type mode / goes back) ──
       if (e.key === 'Escape') {
         e.preventDefault();
         if (helpOpen) { setHelpOpen(false); return; }
         if (mode === 'type') { setMode('click'); return; }
         backToInput();
+        return;
+      }
+
+      // ── While the help modal is open, swallow nothing else ──
+      if (helpOpen) return;
+
+      // ── Shortcuts active in both modes (non-printable keys only) ──
+
+      if (e.key === 'ArrowLeft') {
+        // Guard: only move if there is a previous stage to go to
+        if (stage > 0) { e.preventDefault(); handlePrevStage(); }
+        return;
+      }
+      if (e.key === 'ArrowRight') {
+        // Guard: only move if there is a next stage to go to
+        if (stage < 3) { e.preventDefault(); handleNextStage(); }
         return;
       }
 
