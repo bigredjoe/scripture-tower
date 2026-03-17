@@ -120,7 +120,9 @@ function reducer(state: MemorizeState, action: MemorizeAction): MemorizeState {
         substage:     Math.min(state.substage + 1, NUM_SUBSTAGES),
         typingCursor: 0,
         typingError:  false,
-        // Keep revealed — already-typed/clicked words stay green
+        // Clear revealed so all previously typed/clicked words become blanked
+        // again in the new substage — the pool grows each round.
+        revealed:     new Set(),
       };
 
     case 'ADVANCE_CURSOR': {
@@ -154,7 +156,9 @@ function reducer(state: MemorizeState, action: MemorizeAction): MemorizeState {
             ...state,
             substage:     substage + 1,
             typingCursor: 0,
-            revealed,
+            // Clear revealed so the growing pool of blanked words is
+            // fully fresh each round (same logic as NEXT_SUBSTAGE).
+            revealed:     new Set(),
             typingError:  false,
           };
         }

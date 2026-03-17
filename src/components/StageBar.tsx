@@ -13,9 +13,21 @@ interface StageBarProps {
   onStageChange: (stage: Stage) => void;
 }
 
+function handleNavKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  e.preventDefault();
+  const buttons = Array.from(
+    e.currentTarget.querySelectorAll<HTMLButtonElement>('button')
+  );
+  const idx = buttons.indexOf(document.activeElement as HTMLButtonElement);
+  if (idx === -1) return;
+  const next = e.key === 'ArrowLeft' ? idx - 1 : idx + 1;
+  if (next >= 0 && next < buttons.length) buttons[next].focus();
+}
+
 export default function StageBar({ stage, onStageChange }: StageBarProps) {
   return (
-    <nav className={styles.bar} aria-label="Memorization stages">
+    <nav className={styles.bar} aria-label="Memorization stages" onKeyDown={handleNavKeyDown}>
       {STAGES.map((s, i) => {
         const isActive    = i === stage;
         const isCompleted = i < stage;

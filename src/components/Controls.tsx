@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import type { Stage, Mode } from '../types';
 import styles from './Controls.module.css';
 
@@ -7,6 +7,8 @@ interface ControlsProps {
   substage: number;
   numSubstages: number;
   mode: Mode;
+  theme: string;
+  fontSize: string;
   onPrevStage: () => void;
   onNextStage: () => void;
   onSetMode: (mode: Mode) => void;
@@ -14,6 +16,9 @@ interface ControlsProps {
   onReset: () => void;
   onNextSubstage: () => void;
   onBack: () => void;
+  onToggleTheme: () => void;
+  onCycleFontSize: () => void;
+  onShowHelp: () => void;
 }
 
 export default function Controls({
@@ -21,6 +26,8 @@ export default function Controls({
   substage,
   numSubstages,
   mode,
+  theme,
+  fontSize,
   onPrevStage,
   onNextStage,
   onSetMode,
@@ -28,25 +35,10 @@ export default function Controls({
   onReset,
   onNextSubstage,
   onBack,
+  onToggleTheme,
+  onCycleFontSize,
+  onShowHelp,
 }: ControlsProps) {
-  const [theme,    setTheme]    = useState(() => document.documentElement.getAttribute('data-theme') || 'light');
-  const [fontSize, setFontSize] = useState(() => document.documentElement.getAttribute('data-font-size') || 'medium');
-
-  const toggleTheme = useCallback(() => {
-    const next = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    document.documentElement.setAttribute('data-theme', next);
-    localStorage.setItem('st-theme', next);
-  }, [theme]);
-
-  const cycleFontSize = useCallback(() => {
-    const sizes = ['small', 'medium', 'large'];
-    const next  = sizes[(sizes.indexOf(fontSize) + 1) % sizes.length];
-    setFontSize(next);
-    document.documentElement.setAttribute('data-font-size', next);
-    localStorage.setItem('st-font-size', next);
-  }, [fontSize]);
-
   const toggleMode = useCallback(() => {
     onSetMode(mode === 'click' ? 'type' : 'click');
   }, [mode, onSetMode]);
@@ -55,14 +47,14 @@ export default function Controls({
     <div className={styles.controls}>
       {/* Left: back + stage nav */}
       <div className={styles.group}>
-        <button className="btn-ghost" onClick={onBack} title="Enter new text">
+        <button className="btn-ghost" onClick={onBack} title="Enter new text [Esc in click mode]">
           ← New text
         </button>
         <button
           className="btn-secondary"
           onClick={onPrevStage}
           disabled={stage === 0}
-          title="Previous stage"
+          title="Previous stage [←]"
         >
           ‹ Prev
         </button>
@@ -70,23 +62,23 @@ export default function Controls({
           className="btn-secondary"
           onClick={onNextStage}
           disabled={stage === 3}
-          title="Next stage"
+          title="Next stage [→]"
         >
           Next ›
         </button>
       </div>
 
-      {/* Right: mode + reveal + reset + display */}
+      {/* Right: mode + reveal + reset + display + help */}
       <div className={styles.group}>
         <button
           className={mode === 'type' ? 'btn-active' : 'btn-secondary'}
           onClick={toggleMode}
-          title={mode === 'click' ? 'Switch to Type mode' : 'Switch to Click mode'}
+          title={mode === 'click' ? 'Switch to Type mode [M]' : 'Switch to Click mode [Esc]'}
         >
           {mode === 'click' ? '⌨ Type mode' : '🖱 Click mode'}
         </button>
         {stage > 0 && mode === 'click' && (
-          <button className="btn-secondary" onClick={onRevealAll} title="Reveal all hidden words">
+          <button className="btn-secondary" onClick={onRevealAll} title="Reveal all hidden words [A]">
             Reveal all
           </button>
         )}
@@ -94,24 +86,27 @@ export default function Controls({
           <button
             className="btn-secondary"
             onClick={onNextSubstage}
-            title={`Add the next batch of hidden words (step ${substage}/${numSubstages})`}
+            title={`Add the next batch of hidden words (step ${substage}/${numSubstages}) [W]`}
           >
             + More words
           </button>
         )}
-        <button className="btn-ghost" onClick={onReset} title="Reset — hide all words again">
+        <button className="btn-ghost" onClick={onReset} title="Reset — hide all words again [R]">
           ↺ Reset
         </button>
         <button
           className="btn-ghost"
-          onClick={cycleFontSize}
-          title={`Font size: ${fontSize}`}
+          onClick={onCycleFontSize}
+          title={`Font size: ${fontSize} [F]`}
         >
           {fontSize === 'small' ? 'A' : fontSize === 'medium' ? 'A' : 'A'}
           <span className={styles.fontSizeLabel}>{fontSize[0].toUpperCase()}</span>
         </button>
-        <button className="btn-ghost" onClick={toggleTheme} title="Toggle dark mode">
+        <button className="btn-ghost" onClick={onToggleTheme} title="Toggle dark mode [T]">
           {theme === 'light' ? '🌙' : '☀️'}
+        </button>
+        <button className="btn-ghost" onClick={onShowHelp} title="Keyboard shortcuts [?]">
+          ?
         </button>
       </div>
     </div>
